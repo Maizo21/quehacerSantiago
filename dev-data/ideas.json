@@ -1,0 +1,613 @@
+{
+  "actividades_santiago": {
+    "descripcion": "50 Ideas y panoramas para jóvenes (15-40 años) en Santiago de Chile y en casa.",
+    "ideas": [
+      {
+        "ID": 1,
+        "Idea": "Subir el Cerro San Cristóbal a pie o en bici (para los fit) y bajar en teleférico (para la foto de Instagram).",
+        "ubicacion": "Parque Metropolitano, Providencia",
+        "etiquetas": [
+          "outdoor",
+          "deporte",
+          "vista",
+          "panorama",
+          "barato"
+        ]
+      },
+      {
+        "ID": 2,
+        "Idea": "Noche de Catan, Dixit o el juego de mesa que arruina amistades de turno.",
+        "ubicacion": "En casa",
+        "etiquetas": [
+          "indoor",
+          "juegos",
+          "amigos",
+          "social",
+          "barato"
+        ]
+      },
+      {
+        "ID": 3,
+        "Idea": "Hacerse el intelectual comentando arte en el Museo de Bellas Artes (y cruzar al MAC por el mismo precio).",
+        "ubicacion": "Parque Forestal, Santiago Centro",
+        "etiquetas": [
+          "indoor",
+          "cultural",
+          "arte",
+          "gratis (domingos)",
+          "panorama"
+        ]
+      },
+      {
+        "ID": 4,
+        "Idea": "Sesión 'No-Life' de tu videojuego favorito (Elden Ring, LoL, FIFA) con snacks energéticos.",
+        "ubicacion": "En casa",
+        "etiquetas": [
+          "indoor",
+          "gamer",
+          "relax",
+          "juegos"
+        ]
+      },
+      {
+        "ID": 5,
+        "Idea": "Recorrer las tiendas de diseño y tomar un café de especialidad en Barrio Italia.",
+        "ubicacion": "Barrio Italia, Providencia/Ñuñoa",
+        "etiquetas": [
+          "outdoor",
+          "shopping",
+          "comida",
+          "cafe",
+          "diseño"
+        ]
+      },
+      {
+        "ID": 6,
+        "Idea": "Maratón de una serie completa en un fin de semana (y luego sentir el vacío existencial).",
+        "ubicacion": "En casa",
+        "etiquetas": [
+          "indoor",
+          "relax",
+          "series",
+          "panorama"
+        ]
+      },
+      {
+        "ID": 7,
+        "Idea": "Buscar vinilos raros o CDs de bandas que nadie conoce en las tiendas del 'Crownglass'.",
+        "ubicacion": "Paseo Las Palmas (Metro Los Leones), Providencia",
+        "etiquetas": [
+          "indoor",
+          "música",
+          "shopping",
+          "cultural",
+          "retro"
+        ]
+      },
+      {
+        "ID": 8,
+        "Idea": "Intentar escapar de un 'Escape Room' sin pelearse con el equipo.",
+        "ubicacion": "Varios (Providencia/Lastarria)",
+        "etiquetas": [
+          "indoor",
+          "juegos",
+          "amigos",
+          "adrenalina",
+          "equipo"
+        ]
+      },
+      {
+        "ID": 9,
+        "Idea": "Ir a La Vega a comprar fruta exótica y sentirse abrumado por los gritos y colores.",
+        "ubicacion": "La Vega Central, Recoleta",
+        "etiquetas": [
+          "outdoor",
+          "comida",
+          "cultural",
+          "mercado",
+          "barato"
+        ]
+      },
+      {
+        "ID": 10,
+        "Idea": "Armar ese rompecabezas de 1000 piezas que te regalaron (y probablemente perder la última pieza).",
+        "ubicacion": "En casa",
+        "etiquetas": [
+          "indoor",
+          "relax",
+          "juegos",
+          "paciencia"
+        ]
+      },
+      {
+        "ID": 11,
+        "Idea": "Tarde de 'vitrineo' en el Costanera Center (y subir al Sky Costanera para la foto turista).",
+        "ubicacion": "Costanera Center, Providencia",
+        "etiquetas": [
+          "indoor",
+          "shopping",
+          "vista",
+          "panorama"
+        ]
+      },
+      {
+        "ID": 12,
+        "Idea": "Tour de 'street art': buscar los mejores murales por Bellavista y el Museo a Cielo Abierto en San Miguel.",
+        "ubicacion": "Barrio Bellavista / San Miguel",
+        "etiquetas": [
+          "outdoor",
+          "arte",
+          "cultural",
+          "gratis",
+          "fotografia"
+        ]
+      },
+      {
+        "ID": 13,
+        "Idea": "Paseo por el Parque Quinta Normal: ver el esqueleto de la ballena en el MNHN y andar en bote (si te atreves).",
+        "ubicacion": "Parque Quinta Normal, Santiago",
+        "etiquetas": [
+          "outdoor",
+          "cultural",
+          "naturaleza",
+          "museo",
+          "barato"
+        ]
+      },
+      {
+        "ID": 14,
+        "Idea": "Intentar una receta complicada de TikTok (y tener el número del delivery a mano por si falla).",
+        "ubicacion": "En casa",
+        "etiquetas": [
+          "indoor",
+          "comida",
+          "creativo",
+          "manualidad"
+        ]
+      },
+      {
+        "ID": 15,
+        "Idea": "Ir a los juegos Diana: Batalla de Air Hockey y sacar peluches (un clásico que no falla).",
+        "ubicacion": "Juegos Diana, Santiago Centro",
+        "etiquetas": [
+          "indoor",
+          "juegos",
+          "retro",
+          "cita",
+          "amigos"
+        ]
+      },
+      {
+        "ID": 16,
+        "Idea": "Comerse un completo 'mojado' en la Fuente Alemana (y no mancharse es parte del desafío).",
+        "ubicacion": "Fuente Alemana, Plaza Baquedano",
+        "etiquetas": [
+          "comida",
+          "clásico",
+          "bajon",
+          "barato"
+        ]
+      },
+      {
+        "ID": 17,
+        "Idea": "Tarde de lectura en el pasto del Parque Bicentenario (y mirar los flamencos).",
+        "ubicacion": "Parque Bicentenario, Vitacura",
+        "etiquetas": [
+          "outdoor",
+          "lectura",
+          "relax",
+          "naturaleza",
+          "gratis"
+        ]
+      },
+      {
+        "ID": 18,
+        "Idea": "Ver una expo de fotografía o diseño en el Centro Cultural La Moneda (debajo de la plaza).",
+        "ubicacion": "Centro Cultural La Moneda, Santiago Centro",
+        "etiquetas": [
+          "indoor",
+          "cultural",
+          "arte",
+          "moderno",
+          "fotografia"
+        ]
+      },
+      {
+        "ID": 19,
+        "Idea": "Noche de 'Jackbox Games': Requiere amigos, celular y cero vergüenza para dibujar mal.",
+        "ubicacion": "En casa (o donde un amigo)",
+        "etiquetas": [
+          "indoor",
+          "juegos",
+          "social",
+          "amigos",
+          "divertido"
+        ]
+      },
+      {
+        "ID": 20,
+        "Idea": "Paseo por Barrio Lastarria: un helado artesanal, vitrinear en tiendas independientes y ver una película en El Biógrafo.",
+        "ubicacion": "Barrio Lastarria, Santiago Centro",
+        "etiquetas": [
+          "outdoor",
+          "cultural",
+          "comida",
+          "cine",
+          "panorama"
+        ]
+      },
+      {
+        "ID": 21,
+        "Idea": "Sesión de 'Skincare' y escuchar un podcast de misterio o comedia.",
+        "ubicacion": "En casa",
+        "etiquetas": [
+          "indoor",
+          "relax",
+          "self-care",
+          "podcast"
+        ]
+      },
+      {
+        "ID": 22,
+        "Idea": "Ir a un Bar-Arcade: Jugar Mortal Kombat o Street Fighter II con una cerveza en mano.",
+        "ubicacion": "Varios (Barrio Italia / Providencia)",
+        "etiquetas": [
+          "indoor",
+          "juegos",
+          "noche",
+          "amigos",
+          "retro",
+          "comida"
+        ]
+      },
+      {
+        "ID": 23,
+        "Idea": "Sentirse en Hogwarts visitando el Salón de Lectura de la Biblioteca Nacional (y hablar en susurros).",
+        "ubicacion": "Biblioteca Nacional, Santiago Centro",
+        "etiquetas": [
+          "indoor",
+          "cultural",
+          "tranquilo",
+          "arquitectura",
+          "gratis",
+          "lectura"
+        ]
+      },
+      {
+        "ID": 24,
+        "Idea": "Reflexionar sobre la historia reciente en el Museo de la Memoria y los DDHH.",
+        "ubicacion": "Museo de la Memoria (Metro Quinta Normal)",
+        "etiquetas": [
+          "indoor",
+          "cultural",
+          "historia",
+          "reflexivo",
+          "gratis"
+        ]
+      },
+      {
+        "ID": 25,
+        "Idea": "Arrendar una bicicleta y recorrer la ciclovía de Andrés Bello hasta el Parque de las Esculturas.",
+        "ubicacion": "Costanera Andrés Bello, Providencia",
+        "etiquetas": [
+          "outdoor",
+          "deporte",
+          "panorama",
+          "arte"
+        ]
+      },
+      {
+        "ID": 26,
+        "Idea": "Intentar pintar un cuadro siguiendo un tutorial de Bob Ross (y descubrir que 'no hay errores, solo accidentes felices').",
+        "ubicacion": "En casa",
+        "etiquetas": [
+          "indoor",
+          "creativo",
+          "arte",
+          "relax",
+          "manualidad"
+        ]
+      },
+      {
+        "ID": 27,
+        "Idea": "Perderse en los pasillos de la Biblioteca de Santiago (y encontrar la sección de cómics y la 'Guaguateca').",
+        "ubicacion": "Biblioteca de Santiago, Matucana",
+        "etiquetas": [
+          "indoor",
+          "cultural",
+          "lectura",
+          "gratis",
+          "tranquilo"
+        ]
+      },
+      {
+        "ID": 28,
+        "Idea": "Ir a jugar Bowling (y reírse de los que lanzan la bola a la canaleta).",
+        "ubicacion": "Varios Malls (Ej. Mall Plaza, Alto Las Condes)",
+        "etiquetas": [
+          "indoor",
+          "juegos",
+          "amigos",
+          "deporte",
+          "social"
+        ]
+      },
+      {
+        "ID": 29,
+        "Idea": "Hacer 'Trekking Urbano': Caminar desde Plaza Italia hasta el Costanera Center solo vitrineando.",
+        "ubicacion": "Eje Providencia / Apoquindo",
+        "etiquetas": [
+          "outdoor",
+          "shopping",
+          "deporte",
+          "barato",
+          "panorama"
+        ]
+      },
+      {
+        "ID": 30,
+        "Idea": "Ir a una 'Toca' (concierto) de una banda emergente en algún bar de Bellavista o Barrio Brasil.",
+        "ubicacion": "Barrio Bellavista / Barrio Brasil",
+        "etiquetas": [
+          "indoor",
+          "música",
+          "noche",
+          "cultural",
+          "social"
+        ]
+      },
+      {
+        "ID": 31,
+        "Idea": "Comprar chucherías y comida asiática en los supermercados del Barrio Patronato.",
+        "ubicacion": "Barrio Patronato, Recoleta",
+        "etiquetas": [
+          "outdoor",
+          "shopping",
+          "comida",
+          "cultural",
+          "barato"
+        ]
+      },
+      {
+        "ID": 32,
+        "Idea": "Leer un libro que tenías pendiente (de papel, no en el celular).",
+        "ubicacion": "En casa / Parque",
+        "etiquetas": [
+          "indoor",
+          "outdoor",
+          "lectura",
+          "relax",
+          "cultural",
+          "tranquilo"
+        ]
+      },
+      {
+        "ID": 33,
+        "Idea": "Tour de sándwiches por el Barrio Yungay (buscar la mejor mechada o pernil).",
+        "ubicacion": "Barrio Yungay, Santiago Centro",
+        "etiquetas": [
+          "comida",
+          "cultural",
+          "patrimonio",
+          "outdoor"
+        ]
+      },
+      {
+        "ID": 34,
+        "Idea": "Sacarse fotos 'aesthetic' en el Barrio Concha y Toro (y fingir que estás en Europa).",
+        "ubicacion": "Barrio Concha y Toro (Metro República)",
+        "etiquetas": [
+          "outdoor",
+          "cultural",
+          "fotografia",
+          "arquitectura",
+          "gratis"
+        ]
+      },
+      {
+        "ID": 35,
+        "Idea": "Ir a un 'brunch' un sábado por la mañana y gastar mucho en palta y huevos pochados.",
+        "ubicacion": "Varios (Providencia/Lastarria/Vitacura)",
+        "etiquetas": [
+          "comida",
+          "social",
+          "panorama",
+          "relax"
+        ]
+      },
+      {
+        "ID": 36,
+        "Idea": "Probar la resistencia con un 'Terremoto' en La Piojera (sobrevivir es opcional).",
+        "ubicacion": "La Piojera, Santiago Centro",
+        "etiquetas": [
+          "comida",
+          "cultural",
+          "barato",
+          "noche",
+          "amigos",
+          "clásico"
+        ]
+      },
+      {
+        "ID": 37,
+        "Idea": "Visitar el Centro Cultural GAM: ver una obra de teatro, una expo de danza o simplemente tomar café.",
+        "ubicacion": "GAM (Metro U. Católica)",
+        "etiquetas": [
+          "indoor",
+          "cultural",
+          "arte",
+          "panorama",
+          "gratis (expos)"
+        ]
+      },
+      {
+        "ID": 38,
+        "Idea": "Unirse a una partida de D&D o Magic en una tienda de juegos (y liberar el ñoño interior).",
+        "ubicacion": "Tiendas de Hobbies (Providencia/Centro)",
+        "etiquetas": [
+          "indoor",
+          "juegos",
+          "social",
+          "nerd",
+          "comunidad"
+        ]
+      },
+      {
+        "ID": 39,
+        "Idea": "Hacer un trekking más serio: Quebrada de Macul o Aguas de Ramón (y llevar agua de verdad).",
+        "ubicacion": "Precordillera (La Florida/Las Condes)",
+        "etiquetas": [
+          "outdoor",
+          "deporte",
+          "naturaleza",
+          "vista",
+          "adrenalina"
+        ]
+      },
+      {
+        "ID": 40,
+        "Idea": "Tarde de 'Tie-Dye': Teñir poleras viejas en el patio o balcón.",
+        "ubicacion": "En casa",
+        "etiquetas": [
+          "indoor",
+          "outdoor",
+          "creativo",
+          "manualidad",
+          "barato",
+          "moda"
+        ]
+      },
+      {
+        "ID": 41,
+        "Idea": "Ir a un 'Rooftop Bar' a tomar un cóctel caro mirando el atardecer sobre la ciudad.",
+        "ubicacion": "Varios (Vitacura/Providencia)",
+        "etiquetas": [
+          "noche",
+          "comida",
+          "social",
+          "vista",
+          "elegante"
+        ]
+      },
+      {
+        "ID": 42,
+        "Idea": "Aprender a tocar una canción fácil en Ukelele (con un tutorial de YouTube).",
+        "ubicacion": "En casa",
+        "etiquetas": [
+          "indoor",
+          "música",
+          "creativo",
+          "relax",
+          "habilidad"
+        ]
+      },
+      {
+        "ID": 43,
+        "Idea": "Ir a una 'Parrillada Coreana' (All you can eat) y cocinar tu propia comida.",
+        "ubicacion": "Barrio Patronato / Providencia",
+        "etiquetas": [
+          "comida",
+          "social",
+          "amigos",
+          "cultural",
+          "noche"
+        ]
+      },
+      {
+        "ID": 44,
+        "Idea": "Ir a un parque de camas elásticas (Summit Trampoline Park) y volver a sentirte niño.",
+        "ubicacion": "Varios (Las Condes/Quilicura)",
+        "etiquetas": [
+          "indoor",
+          "deporte",
+          "adrenalina",
+          "amigos",
+          "divertido"
+        ]
+      },
+      {
+        "ID": 45,
+        "Idea": "Paseo por el Persa Bío-Bío: buscar antigüedades, ropa usada y comer en las 'picadas'.",
+        "ubicacion": "Persa Bío-Bío, Barrio Franklin",
+        "etiquetas": [
+          "outdoor",
+          "shopping",
+          "cultural",
+          "retro",
+          "comida",
+          "barato"
+        ]
+      },
+      {
+        "ID": 46,
+        "Idea": "Competir en Go-Karts (y sacar a relucir el 'Toretto' que llevas dentro).",
+        "ubicacion": "Varios (Ej. Mall Plaza Oeste/Espacio Riesco)",
+        "etiquetas": [
+          "indoor",
+          "outdoor",
+          "deporte",
+          "adrenalina",
+          "amigos"
+        ]
+      },
+      {
+        "ID": 47,
+        "Idea": "Comer sopaipillas pasadas o con pebre en un carrito callejero (el verdadero sabor de Chile).",
+        "ubicacion": "Cualquier esquina, Santiago Centro",
+        "etiquetas": [
+          "comida",
+          "callejero",
+          "barato",
+          "clásico",
+          "cultural"
+        ]
+      },
+      {
+        "ID": 48,
+        "Idea": "Visitar el Templo Bahá'í al atardecer (para la paz mental y la foto épica).",
+        "ubicacion": "Peñalolén",
+        "etiquetas": [
+          "outdoor",
+          "cultural",
+          "vista",
+          "relax",
+          "arquitectura",
+          "gratis"
+        ]
+      },
+      {
+        "ID": 49,
+        "Idea": "Ir a patinar sobre hielo (y tratar de no caerse más de 10 veces).",
+        "ubicacion": "Varios Malls (Ej. Parque Arauco)",
+        "etiquetas": [
+          "indoor",
+          "deporte",
+          "cita",
+          "amigos",
+          "divertido"
+        ]
+      },
+      {
+        "ID": 50,
+        "Idea": "Escapada por el día al Cajón del Maipo: rafting, trekking o simplemente comer empanadas junto al río.",
+        "ubicacion": "Cajón del Maipo (San José de Maipo)",
+        "etiquetas": [
+          "outdoor",
+          "naturaleza",
+          "adrenalina",
+          "comida",
+          "panorama",
+          "viaje"
+        ]
+      },
+      {
+        "ID": "753895fd-dc5d-4fae-bec5-a76c26ae3a54",
+        "idea": "No hacer mucho",
+        "ubicacion": "casita",
+        "etiquetas": [
+          "indoor, economico, test"
+        ]
+      }
+    ]
+  }
+}
