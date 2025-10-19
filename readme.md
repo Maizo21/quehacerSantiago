@@ -37,57 +37,51 @@ El proyecto sigue una estructura MVC (Modelo-Vista-Controlador) básica y los da
 
 ### Estructura de Carpetas
 
-&nbsp;&nbsp;&nbsp; .
-&nbsp;&nbsp;&nbsp; ├── controller/
-&nbsp;&nbsp;&nbsp; │&nbsp;&nbsp; └── ideasController.js &nbsp;# Lógica de negocio y control de rutas
-&nbsp;&nbsp;&nbsp; ├── dev-data/
-&nbsp;&nbsp;&nbsp; │&nbsp;&nbsp; └── ideas.json &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Archivo que funciona como base de datos
-&nbsp;&nbsp;&nbsp; ├── Models/
-&nbsp;&nbsp;&nbsp; │&nbsp;&nbsp; └── ideasModels.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Funciones de lectura y validación de datos
-&nbsp;&nbsp;&nbsp; ├── Routes/
-&nbsp;&nbsp;&nbsp; │&nbsp;&nbsp; └── ideasRoute.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Definición de rutas (endpoints)
-&nbsp;&nbsp;&nbsp; ├── node_modules/
-&nbsp;&nbsp;&nbsp; ├── .gitignore
-&nbsp;&nbsp;&nbsp; ├── index.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# Punto de entrada del servidor
-&nbsp;&nbsp;&nbsp; ├── package.json
-&nbsp;&nbsp;&nbsp; └── package-lock.json
+    .
+    ├── dev-data/
+    │   └── ideas.json        # Archivo que funciona como base de datos
+    ├── node_modules/
+    ├── .gitignore
+    ├── index.js             # Lógica principal del servidor y endpoints
+    ├── package.json
+    └── package-lock.json
+    ├── controller/
+    └── ideasController.js   # Lógica de negocio y control de rutas
+    ├── Models/
+    └── ideasModels.js       # Funciones de lectura y validación de datos
+    ├── Routes/
+    └── ideasRoute.js        # Definición de rutas (endpoints)
+
 
 ### Modelo de Datos (`ideas.json`)
 
 El archivo JSON principal contiene un objeto con la descripción general y un array de objetos de ideas.
 
-&nbsp;&nbsp;&nbsp; {
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; "actividades_santiago": {
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; "descripcion": "50 Ideas y panoramas para jóvenes (15-40 años) en Santiago de Chile y en casa.",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; "ideas": [
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "ID": "1",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "idea": "Subir el Cerro San Cristóbal a pie o en bici (para los fit) y bajar en teleférico (para la foto de Instagram).",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "ubicacion": "Parque Metropolitano, Providencia",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "etiquetas": [
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "outdoor",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "deporte",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "vista",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "panorama",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "barato"
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ]
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; },
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "ID": "2",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "idea": "Noche de Catan, Dixit o el juego de mesa que arruina amistades de turno.",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "ubicacion": "En casa",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "etiquetas": [
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "indoor",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "juego",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "amigos",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "social",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "barato"
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ]
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; ]
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; }
-&nbsp;&nbsp;&nbsp; }
+### Modelo de Datos (`ideas.json`)
 
+El archivo JSON principal contiene un objeto con la descripción general y un array de objetos de ideas.
+
+```json
+{
+  "actividades_santiago": {
+    "descripcion": "50 Ideas y panoramas para jóvenes (15-40 años) en Santiago de Chile y en casa.",
+    "ideas": [
+      {
+        "ID": "1",
+        "idea": "Subir el Cerro San Cristóbal a pie o en bici (para los fit) y bajar en teleférico (para la foto de Instagram).",
+        "ubicacion": "Parque Metropolitano, Providencia",
+        "etiquetas": [ "outdoor", "deporte", "vista", "panorama", "barato" ]
+      },
+      {
+        "ID": "2",
+        "idea": "Noche de Catan, Dixit o el juego de mesa que arruina amistades de turno.",
+        "ubicacion": "En casa",
+        "etiquetas": [ "indoor", "juego", "amigos", "social", "barato" ]
+      }
+    ]
+  }
+}
+```
 ---
 
 ## 📖 Documentación de Endpoints
@@ -101,7 +95,9 @@ A continuación se detallan los endpoints disponibles en la API.
 -   **Descripción:** Devuelve el objeto completo, incluyendo la lista de todas las ideas.
 -   **Ejemplo con `curl`:**
 
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; curl -X GET http://quehacersantiago-production.up.railway.app/ideas
+```json
+curl -X GET http://quehacersantiago-production.up.railway.app/ideas
+```
 
 -   **Respuesta Exitosa (200 OK):** Muestra el contenido completo de `ideas.json`.
 
@@ -114,26 +110,30 @@ A continuación se detallan los endpoints disponibles en la API.
 &nbsp;&nbsp;&nbsp; -   `id` (string, requerido): El ID de la idea a buscar.
 -   **Ejemplo con `curl`:**
 
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; curl -X GET "http://quehacersantiago-production.up.railway.app/ideas?id=1"
+```json
+curl -X GET "http://quehacersantiago-production.up.railway.app/ideas?id=1"
+```
 
 -   **Respuesta Exitosa (200 OK):**
-
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; {
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; "ID": "1",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; "idea": "Subir el Cerro San Cristóbal a pie o en bici (para los fit) y bajar en teleférico (para la foto de Instagram).",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; "ubicacion": "Parque Metropolitano, Providencia",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; "etiquetas": [
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; "outdoor",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; "deporte",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; "vista",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; "panorama",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; "barato"
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; ]
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; }
-
+```json
+{
+    "ID": "1",
+    "idea": "Subir el Cerro San Cristóbal a pie o en bici (para los fit) y bajar en teleférico (para la foto de Instagram).",
+    "ubicacion": "Parque Metropolitano, Providencia",
+    "etiquetas": [
+        "outdoor",
+        "deporte",
+        "vista",
+        "panorama",
+        "barato"
+    ]
+}
+```
 -   **Respuesta de Error (404 Not Found):** Si no se encuentra la idea.
 
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; { "Error": "Idea no existe" }
+```json
+{ "Error": "Idea no existe" }
+```
 
 ### 3. Crear una Nueva Idea
 
@@ -141,9 +141,10 @@ A continuación se detallan los endpoints disponibles en la API.
 -   **Endpoint:** `/ideas`
 -   **Descripción:** Agrega una nueva idea a la lista.
 -   **Cuerpo de la Solicitud (Body - raw JSON):**
-
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; {
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; "idea": "Ir a Fantasilandia",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; "ubicacion": "Parque O'Higgins",
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; "etiquetas": ["parque", "juegos", "adrenalina"]
-&nbsp;&nbsp;&nbsp; &nbsp;&nbsp
+```json
+{
+    "idea": "Ir a Fantasilandia",
+    "ubicacion": "Parque O'Higgins",
+    "etiquetas": ["parque", "juegos", "adrenalina"]
+}
+```
