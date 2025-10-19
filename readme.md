@@ -52,11 +52,6 @@ El proyecto sigue una estructura MVC (Modelo-Vista-Controlador) básica y los da
     ├── Routes/
     └── ideasRoute.js        # Definición de rutas (endpoints)
 
-
-### Modelo de Datos (`ideas.json`)
-
-El archivo JSON principal contiene un objeto con la descripción general y un array de objetos de ideas.
-
 ### Modelo de Datos (`ideas.json`)
 
 El archivo JSON principal contiene un objeto con la descripción general y un array de objetos de ideas.
@@ -95,9 +90,8 @@ A continuación se detallan los endpoints disponibles en la API.
 -   **Descripción:** Devuelve el objeto completo, incluyendo la lista de todas las ideas.
 -   **Ejemplo con `curl`:**
 
-```json
 curl -X GET http://quehacersantiago-production.up.railway.app/ideas
-```
+
 
 -   **Respuesta Exitosa (200 OK):** Muestra el contenido completo de `ideas.json`.
 
@@ -110,9 +104,8 @@ curl -X GET http://quehacersantiago-production.up.railway.app/ideas
 &nbsp;&nbsp;&nbsp; -   `id` (string, requerido): El ID de la idea a buscar.
 -   **Ejemplo con `curl`:**
 
-```json
 curl -X GET "http://quehacersantiago-production.up.railway.app/ideas?id=1"
-```
+
 
 -   **Respuesta Exitosa (200 OK):**
 ```json
