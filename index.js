@@ -8,7 +8,9 @@ const PORT = Number(process.env.PORT) || 8000;
 const ideasRoute = require('./Routes/ideasRoute');
 
 // Headers de seguridad
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 
 // Rate limiting global: max 100 requests por minuto por IP
 const globalLimiter = rateLimit({
