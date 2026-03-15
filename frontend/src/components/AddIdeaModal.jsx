@@ -1,16 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import TagSelector from '@/components/TagSelector';
 
 export default function AddIdeaModal({ onClose, onCreated, apiUrl, getToken }) {
   const [form, setForm] = useState({
     titulo: '',
     descripcion: '',
     ubicacion: '',
-    tags: '',
     fecha: '',
     destacado: false
   });
+  const [selectedTags, setSelectedTags] = useState([]);
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -33,7 +34,7 @@ export default function AddIdeaModal({ onClose, onCreated, apiUrl, getToken }) {
     formData.append('titulo', form.titulo);
     if (form.descripcion) formData.append('descripcion', form.descripcion);
     formData.append('ubicacion', form.ubicacion);
-    formData.append('tags', form.tags);
+    formData.append('tags', selectedTags.join(','));
     if (form.fecha) formData.append('fecha', form.fecha);
     formData.append('destacado', form.destacado);
     if (image) formData.append('imagen', image);
@@ -129,18 +130,10 @@ export default function AddIdeaModal({ onClose, onCreated, apiUrl, getToken }) {
           </div>
 
           <div>
-            <label htmlFor="add-tags" className="block text-sm font-medium text-sage-dim mb-1">
-              Etiquetas * <span className="font-normal text-sage-dim/50">(separadas por coma)</span>
+            <label id="add-tags" className="block text-sm font-medium text-sage-dim mb-2">
+              Etiquetas *
             </label>
-            <input
-              id="add-tags"
-              type="text"
-              required
-              value={form.tags}
-              onChange={e => setForm({ ...form, tags: e.target.value })}
-              className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-light placeholder-sage-dim/50 focus:outline-none focus:ring-2 focus:ring-sage/50"
-              placeholder="outdoor, económico, pareja"
-            />
+            <TagSelector selected={selectedTags} onChange={setSelectedTags} id="add-tags" />
           </div>
 
           <div>

@@ -1,16 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import TagSelector from '@/components/TagSelector';
 
 export default function EditIdeaModal({ idea, onClose, onUpdated, apiUrl, getToken }) {
   const [form, setForm] = useState({
     titulo: idea.titulo,
     descripcion: idea.descripcion || '',
     ubicacion: idea.ubicacion,
-    tags: idea.tags.join(', '),
     fecha: idea.fecha ? idea.fecha.split('T')[0] : '',
     destacado: idea.destacado || false
   });
+  const [selectedTags, setSelectedTags] = useState(idea.tags || []);
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(
     idea.imagenUrl ? `${apiUrl}/uploads/${idea.imagenUrl}` : null
@@ -35,7 +36,7 @@ export default function EditIdeaModal({ idea, onClose, onUpdated, apiUrl, getTok
     formData.append('titulo', form.titulo);
     formData.append('descripcion', form.descripcion);
     formData.append('ubicacion', form.ubicacion);
-    formData.append('tags', form.tags);
+    formData.append('tags', selectedTags.join(','));
     if (form.fecha) formData.append('fecha', form.fecha);
     formData.append('destacado', form.destacado);
     if (image) formData.append('imagen', image);
@@ -137,18 +138,10 @@ export default function EditIdeaModal({ idea, onClose, onUpdated, apiUrl, getTok
           </div>
 
           <div>
-            <label htmlFor="edit-tags" className="block text-sm font-medium text-sage-dim mb-1">
-              Etiquetas * <span className="font-normal text-sage-dim/50">(separadas por coma)</span>
+            <label id="edit-tags" className="block text-sm font-medium text-sage-dim mb-2">
+              Etiquetas *
             </label>
-            <input
-              id="edit-tags"
-              type="text"
-              required
-              value={form.tags}
-              onChange={e => setForm({ ...form, tags: e.target.value })}
-              className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-light placeholder-sage-dim/50 focus:outline-none focus:ring-2 focus:ring-sage/50"
-              placeholder="outdoor, económico, pareja"
-            />
+            <TagSelector selected={selectedTags} onChange={setSelectedTags} id="edit-tags" />
           </div>
 
           <div>
