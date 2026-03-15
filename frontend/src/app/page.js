@@ -1,56 +1,33 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useSearch } from '@/context/SearchContext';
 import { useAuthorized } from '@/context/AuthContext';
 import { useAuth } from '@clerk/nextjs';
 import IdeaCard from '@/components/IdeaCard';
-import TagFilter from '@/components/TagFilter';
+import SectionSlider from '@/components/SectionSlider';
 import AddIdeaModal from '@/components/AddIdeaModal';
-import WeekSlider from '@/components/WeekSlider';
+import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-function HomeContent() {
+export default function Home() {
   const { searchQuery } = useSearch();
   const { isAuthorized, isAdmin } = useAuthorized();
   const { getToken } = useAuth();
-  const searchParams = useSearchParams();
   const [ideas, setIdeas] = useState([]);
-  const [upcomingIdeas, setUpcomingIdeas] = useState([]);
-  const [tags, setTags] = useState([]);
-  const [selectedTags, setSelectedTags] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const urlTag = searchParams.get('tag');
-    if (urlTag) {
-      setSelectedTags([urlTag]);
-    }
-  }, [searchParams]);
 
   const fetchIdeas = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
-      selectedTags.forEach(t => params.append('tag', t));
 
       const res = await fetch(`${API_URL}/ideas?${params}`);
       const data = await res.json();
-      const allIdeas = data.ideas || [];
-      setIdeas(allIdeas);
-
-      // Filtrar planes con fecha actual o futura para el slider
-      const now = new Date();
-      now.setHours(0, 0, 0, 0);
-      const upcoming = allIdeas.filter(idea => {
-        if (!idea.fecha) return false;
-        return new Date(idea.fecha) >= now;
-      }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-      setUpcomingIdeas(upcoming);
+      setIdeas(data.ideas || []);
     } catch (err) {
       console.error('Error fetching ideas:', err);
     } finally {
@@ -58,114 +35,105 @@ function HomeContent() {
     }
   };
 
-  const fetchTags = async () => {
-    try {
-      const res = await fetch(`${API_URL}/tags`);
-      const data = await res.json();
-      setTags(data || []);
-    } catch (err) {
-      console.error('Error fetching tags:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchTags();
-  }, []);
-
   useEffect(() => {
     fetchIdeas();
-  }, [selectedTags, searchQuery]);
+  }, [searchQuery]);
 
-  const handleTagToggle = (tagName) => {
-    setSelectedTags(prev =>
-      prev.includes(tagName)
-        ? prev.filter(t => t !== tagName)
-        : [...prev, tagName]
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  // Planes de esta semana (fecha >= hoy)
+  const weekPlans = ideas.filter(i => i.fecha && new Date(i.fecha) >= now)
+    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+  // Planes por categoría (sin importar fecha)
+  const outdoorPlans = ideas.filter(i =>
+    i.tags.some(t => t.toLowerCase().includes('outdoor') || t.toLowerCase().includes('aire libre'))
+  );
+  const culturalPlans = ideas.filter(i =>
+    i.tags.some(t => t.toLowerCase().includes('cultural') || t.toLowerCase().includes('cultura') || t.toLowerCase().includes('museo') || t.toLowerCase().includes('arte'))
+  );
+  const freePlans = ideas.filter(i =>
+    i.tags.some(t => t.toLowerCase().includes('gratuito') || t.toLowerCase().includes('gratis') || t.toLowerCase().includes('free'))
+  );
+
+  // Sugerencia: max 20 planes
+  const suggestionPlans = ideas.slice(0, 20);
+
+  // Planes que ya pasaron
+  const pastPlans = ideas.filter(i => i.fecha && new Date(i.fecha) < now)
+    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+  // Si hay búsqueda activa, mostrar resultados en grid
+  if (searchQuery) {
+    return (
+      <>
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+          <h2 className="font-logo text-3xl tracking-wide text-sage">
+            RESULTADOS: &ldquo;{searchQuery.toUpperCase()}&rdquo;
+          </h2>
+        </div>
+        {loading ? (
+          <LoadingSkeleton />
+        ) : ideas.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            {ideas.map(idea => (
+              <IdeaCard key={idea.id} idea={idea} apiUrl={API_URL} isAdmin={isAdmin} getToken={getToken} onDeleted={fetchIdeas} />
+            ))}
+          </div>
+        )}
+      </>
     );
-  };
-
-  const clearFilters = () => {
-    setSelectedTags([]);
-  };
+  }
 
   return (
     <>
-      {upcomingIdeas.length > 0 && !searchQuery && selectedTags.length === 0 && (
-        <WeekSlider ideas={upcomingIdeas} apiUrl={API_URL} />
+      {loading ? (
+        <LoadingSkeleton />
+      ) : ideas.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <>
+          <SectionSlider title="ESTA SEMANA" ideas={weekPlans} apiUrl={API_URL} />
+          <SectionSlider title="OUTDOOR" ideas={outdoorPlans} apiUrl={API_URL} />
+          <SectionSlider title="CULTURAL" ideas={culturalPlans} apiUrl={API_URL} />
+          <SectionSlider title="GRATIS" ideas={freePlans} apiUrl={API_URL} />
+
+          {/* Sugerencias — grid limitado a 20 */}
+          <section className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-logo text-3xl tracking-wide text-sage">SUGERENCIAS</h2>
+              <Link href="/planes" className="text-sm text-sage-dim hover:text-sage hover:underline transition">
+                Ver todos →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+              {suggestionPlans.map(idea => (
+                <IdeaCard key={idea.id} idea={idea} apiUrl={API_URL} isAdmin={isAdmin} getToken={getToken} onDeleted={fetchIdeas} />
+              ))}
+            </div>
+          </section>
+
+          <SectionSlider title="YA PASARON" ideas={pastPlans} apiUrl={API_URL} isPast />
+        </>
       )}
 
-      <TagFilter
-        tags={tags}
-        selectedTags={selectedTags}
-        onToggle={handleTagToggle}
-        onClear={clearFilters}
-      />
-
-      <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
-        <div>
-          <h2 className="font-logo text-3xl tracking-wide text-sage">
-            {searchQuery
-              ? `RESULTADOS: "${searchQuery.toUpperCase()}"`
-              : selectedTags.length > 0
-                ? `PLANES: ${selectedTags.join(', ').toUpperCase()}`
-                : 'TODOS LOS PLANES'}
-          </h2>
-          {(selectedTags.length > 0 || searchQuery) && (
-            <button
-              onClick={clearFilters}
-              className="text-sm text-sage-dim hover:text-sage hover:underline mt-1 cursor-pointer transition"
-            >
-              Limpiar filtros
-            </button>
-          )}
-        </div>
-        {isAuthorized && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-accent text-light px-5 py-2.5 rounded-lg hover:bg-accent-light transition font-medium cursor-pointer"
-          >
-            + Agregar Plan
-          </button>
-        )}
-      </div>
-
-      {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-card border border-border rounded-2xl overflow-hidden animate-pulse">
-              <div className="h-48 bg-surface" />
-              <div className="p-5 space-y-3">
-                <div className="h-5 bg-surface rounded w-3/4" />
-                <div className="h-3 bg-surface rounded w-1/2" />
-                <div className="flex gap-1.5 pt-3 border-t border-border/50">
-                  <div className="h-6 bg-surface rounded-full w-16" />
-                  <div className="h-6 bg-surface rounded-full w-14" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : ideas.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-5xl mb-4">🔍</p>
-          <p className="text-sage text-lg">No se encontraron planes</p>
-          <p className="text-sage-dim text-sm mt-1">Prueba con otros filtros o agrega uno nuevo</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          {ideas.map(idea => (
-            <IdeaCard key={idea.id} idea={idea} apiUrl={API_URL} isAdmin={isAdmin} getToken={getToken} onDeleted={fetchIdeas} />
-          ))}
-        </div>
+      {isAuthorized && (
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="fixed bottom-6 right-6 bg-accent text-light w-14 h-14 rounded-full shadow-lg hover:bg-accent-light transition flex items-center justify-center text-2xl cursor-pointer z-30"
+          aria-label="Agregar nuevo plan"
+        >
+          +
+        </button>
       )}
 
       {showAddModal && (
         <AddIdeaModal
           onClose={() => setShowAddModal(false)}
-          onCreated={() => {
-            fetchIdeas();
-            fetchTags();
-          }}
+          onCreated={fetchIdeas}
           apiUrl={API_URL}
           getToken={getToken}
         />
@@ -174,22 +142,28 @@ function HomeContent() {
   );
 }
 
-export default function Home() {
+function LoadingSkeleton() {
   return (
-    <Suspense fallback={
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-card border border-border rounded-2xl overflow-hidden animate-pulse">
-            <div className="h-48 bg-surface" />
-            <div className="p-5 space-y-3">
-              <div className="h-5 bg-surface rounded w-3/4" />
-              <div className="h-3 bg-surface rounded w-1/2" />
-            </div>
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="bg-card border border-border rounded-2xl overflow-hidden animate-pulse">
+          <div className="h-48 bg-surface" />
+          <div className="p-5 space-y-3">
+            <div className="h-5 bg-surface rounded w-3/4" />
+            <div className="h-3 bg-surface rounded w-1/2" />
           </div>
-        ))}
-      </div>
-    }>
-      <HomeContent />
-    </Suspense>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="text-center py-16">
+      <p className="text-5xl mb-4" aria-hidden="true">🔍</p>
+      <p className="text-sage text-lg">No se encontraron planes</p>
+      <p className="text-sage-dim text-sm mt-1">Prueba con otros filtros o agrega uno nuevo</p>
+    </div>
   );
 }

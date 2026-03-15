@@ -1,13 +1,40 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = Number(process.env.PORT) || 8000;
 const ideasRoute = require('./Routes/ideasRoute');
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+// Headers de seguridad
+app.use(helmet());
+
+// Rate limiting global: max 100 requests por minuto por IP
+const globalLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { Error: 'Demasiadas solicitudes, intenta de nuevo en un minuto' }
+});
+app.use(globalLimiter);
+
+// Rate limiting estricto para escritura: max 10 por minuto
+const writeLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { Error: 'Demasiadas solicitudes de escritura, intenta de nuevo en un minuto' }
+});
+app.set('writeLimiter', writeLimiter);
+
+// CORS manual
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
     .split(',')
-    .map(o => o.trim());
+    .map(o => o.trim())
+    .filter(Boolean);
 
 app.use((req, res, next) => {
     const origin = req.headers.origin;
@@ -22,11 +49,19 @@ app.use((req, res, next) => {
     }
     next();
 });
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Body parsing con límite de tamaño
+app.use(express.json({ limit: '50kb' }));
+app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/', ideasRoute);
+
+// Error handler global — no exponer detalles internos
+app.use((err, req, res, next) => {
+    console.error('Error:', err.message);
+    res.status(err.status || 500).json({ Error: 'Error interno del servidor' });
+});
 
 app.listen(PORT, '0.0.0.0', ()=>{
     console.log(`Listening on port ${PORT}`)

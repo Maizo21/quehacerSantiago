@@ -28,11 +28,14 @@ const upload = multer({
     }
 });
 
+// Rate limiter para escritura (configurado en index.js)
+const getWriteLimiter = (req) => req.app.get('writeLimiter');
+
 router.get('/', ideasController.getAllIdeas);
 router.get('/ideas', ideasController.getAllIdeas);
-router.post('/ideas', requireAuthorized, upload.single('imagen'), ideasController.createIdea);
-router.delete('/ideas', requireAdmin, ideasController.deleteIdea);
-router.put('/ideas', requireAuthorized, upload.single('imagen'), ideasController.updateIdea);
+router.post('/ideas', (req, res, next) => getWriteLimiter(req)(req, res, next), requireAuthorized, upload.single('imagen'), ideasController.createIdea);
+router.delete('/ideas', (req, res, next) => getWriteLimiter(req)(req, res, next), requireAdmin, ideasController.deleteIdea);
+router.put('/ideas', (req, res, next) => getWriteLimiter(req)(req, res, next), requireAuthorized, upload.single('imagen'), ideasController.updateIdea);
 router.get('/ideasRandom', ideasController.getRandomIdea);
 router.get('/tags', ideasController.getAllTags);
 router.get('/auth/check', requireAuth, (req, res) => {
@@ -41,7 +44,6 @@ router.get('/auth/check', requireAuth, (req, res) => {
     res.json({
         authorized: AUTHORIZED.includes(req.userEmail),
         admin: ADMINS.includes(req.userEmail),
-        email: req.userEmail,
         name: req.userName
     });
 });

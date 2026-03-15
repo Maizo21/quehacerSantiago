@@ -1,7 +1,26 @@
 const fs = require('fs');
 const path = require('path');
+const sanitizeHtml = require('sanitize-html');
 const ideasModels = require('../Models/ideasModels');
 const { validateLength, prisma } = ideasModels;
+
+const uploadsDir = path.resolve(__dirname, '../uploads');
+
+// Sanitizar texto — eliminar todo HTML
+const clean = (str) => str ? sanitizeHtml(str, { allowedTags: [], allowedAttributes: {} }).trim() : str;
+
+// Validar que un path esté dentro de uploads/
+const safePath = (filename) => {
+    const resolved = path.resolve(uploadsDir, filename);
+    if (!resolved.startsWith(uploadsDir)) return null;
+    return resolved;
+};
+
+// Eliminar archivo de forma segura
+const safeUnlink = (filename) => {
+    const filePath = safePath(filename);
+    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+};
 
 exports.getAllIdeas = async (req, res) => {
     const { id, search, tag } = req.query;
@@ -26,10 +45,11 @@ exports.getAllIdeas = async (req, res) => {
     const where = {};
 
     if(search){
+        const s = clean(search);
         where.OR = [
-            { titulo: { contains: search } },
-            { descripcion: { contains: search } },
-            { ubicacion: { contains: search } }
+            { titulo: { contains: s } },
+            { descripcion: { contains: s } },
+            { ubicacion: { contains: s } }
         ];
     }
 
@@ -57,7 +77,10 @@ exports.getAllIdeas = async (req, res) => {
 }
 
 exports.createIdea = async (req, res) => {
-    const { titulo, descripcion, ubicacion, tags, fecha, destacado } = req.body;
+    const titulo = clean(req.body.titulo);
+    const descripcion = clean(req.body.descripcion);
+    const ubicacion = clean(req.body.ubicacion);
+    const { tags, fecha, destacado } = req.body;
 
     if(!titulo || !ubicacion || !tags){
         return res.status(400).json({Error: 'Faltan datos'})
@@ -67,7 +90,23 @@ exports.createIdea = async (req, res) => {
         return res.status(400).json({Error: 'Los datos debe tener entre 1 y 100 caracteres'})
     }
 
-    const tagNames = tags.split(',').map(t => t.trim()).filter(Boolean);
+    if(descripcion && !validateLength(descripcion, 0, 5000)){
+        return res.status(400).json({Error: 'La descripción no puede superar los 5000 caracteres'})
+    }
+
+    const tagNames = clean(tags).split(',').map(t => t.trim()).filter(Boolean);
+
+    if(tagNames.length > 20){
+        return res.status(400).json({Error: 'Máximo 20 etiquetas por plan'})
+    }
+
+    if(tagNames.some(t => t.length > 50)){
+        return res.status(400).json({Error: 'Cada etiqueta debe tener máximo 50 caracteres'})
+    }
+
+    if(fecha && isNaN(new Date(fecha).getTime())){
+        return res.status(400).json({Error: 'Fecha inválida'})
+    }
 
     const tagRecords = await Promise.all(
         tagNames.map(nombre =>
@@ -109,11 +148,7 @@ exports.deleteIdea = async (req, res) => {
         return res.status(404).json({Error: 'Idea no encontrada'});
     }
 
-    // Eliminar imagen si existe
-    if(idea.imagenUrl){
-        const imgPath = path.join(__dirname, '../uploads', idea.imagenUrl);
-        if(fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-    }
+    if(idea.imagenUrl) safeUnlink(idea.imagenUrl);
 
     await prisma.idea.delete({ where: { id } });
     res.status(200).json({Mensaje: 'Idea eliminada correctamente'});
@@ -121,7 +156,10 @@ exports.deleteIdea = async (req, res) => {
 
 exports.updateIdea = async (req, res) => {
     const id = req.query.id;
-    const { titulo, descripcion, ubicacion, tags, fecha, destacado } = req.body;
+    const { tags, fecha, destacado } = req.body;
+    const titulo = clean(req.body.titulo);
+    const descripcion = clean(req.body.descripcion);
+    const ubicacion = clean(req.body.ubicacion);
 
     const existing = await prisma.idea.findUnique({ where: { id } });
     if(!existing){
@@ -134,23 +172,35 @@ exports.updateIdea = async (req, res) => {
     if(ubicacion && !validateLength(ubicacion, 1, 100)){
         return res.status(400).json({Error: 'La ubicación debe tener entre 1 y 100 caracteres'})
     }
-
-    // Si hay nueva imagen, eliminar la anterior
-    if(req.file && existing.imagenUrl){
-        const oldPath = path.join(__dirname, '../uploads', existing.imagenUrl);
-        if(fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    if(descripcion && !validateLength(descripcion, 0, 5000)){
+        return res.status(400).json({Error: 'La descripción no puede superar los 5000 caracteres'})
     }
+
+    if(req.file && existing.imagenUrl) safeUnlink(existing.imagenUrl);
 
     const data = {};
     if(titulo) data.titulo = titulo;
     if(descripcion !== undefined) data.descripcion = descripcion || null;
     if(ubicacion) data.ubicacion = ubicacion;
-    if(fecha !== undefined) data.fecha = fecha ? new Date(fecha) : null;
+    if(fecha !== undefined){
+        if(fecha && isNaN(new Date(fecha).getTime())){
+            return res.status(400).json({Error: 'Fecha inválida'})
+        }
+        data.fecha = fecha ? new Date(fecha) : null;
+    }
     if(destacado !== undefined) data.destacado = destacado === 'true';
     if(req.file) data.imagenUrl = req.file.filename;
 
     if(tags){
-        const tagNames = tags.split(',').map(t => t.trim()).filter(Boolean);
+        const tagNames = clean(tags).split(',').map(t => t.trim()).filter(Boolean);
+
+        if(tagNames.length > 20){
+            return res.status(400).json({Error: 'Máximo 20 etiquetas por plan'})
+        }
+        if(tagNames.some(t => t.length > 50)){
+            return res.status(400).json({Error: 'Cada etiqueta debe tener máximo 50 caracteres'})
+        }
+
         const tagRecords = await Promise.all(
             tagNames.map(nombre =>
                 prisma.tag.upsert({

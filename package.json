@@ -17,13 +17,15 @@
     "@clerk/express": "^2.0.4",
     "@clerk/nextjs": "^7.0.4",
     "@prisma/client": "^6.6.0",
-    "cors": "^2.8.5",
     "dotenv": "^17.3.1",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.3.1",
+    "helmet": "^8.1.0",
     "multer": "^1.4.5-lts.2",
-    "nodemon": "^3.1.10",
     "prisma": "^6.6.0",
-    "uuid": "^13.0.0"
+    "sanitize-html": "^2.17.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
 }

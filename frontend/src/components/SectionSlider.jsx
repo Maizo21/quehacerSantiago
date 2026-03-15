@@ -18,7 +18,7 @@ function getGradient(id) {
   return GRADIENTS[Math.abs(hash) % GRADIENTS.length];
 }
 
-export default function WeekSlider({ ideas, apiUrl }) {
+export default function SectionSlider({ title, ideas, apiUrl, isPast = false }) {
   const scrollRef = useRef(null);
 
   if (!ideas || ideas.length === 0) return null;
@@ -30,16 +30,16 @@ export default function WeekSlider({ ideas, apiUrl }) {
   };
 
   return (
-    <section className="mb-10" aria-label="Planes de esta semana">
+    <section className="mb-10" aria-label={title}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-logo text-3xl tracking-wide text-sage">
-          ESTA SEMANA
+          {title}
         </h2>
         <div className="flex gap-2" role="group" aria-label="Controles del carrusel">
           <button
             onClick={() => scroll(-1)}
             className="w-9 h-9 rounded-full border border-border bg-surface flex items-center justify-center text-sage hover:bg-card hover:border-sage/30 transition cursor-pointer"
-            aria-label="Desplazar planes hacia la izquierda"
+            aria-label="Desplazar hacia la izquierda"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -48,7 +48,7 @@ export default function WeekSlider({ ideas, apiUrl }) {
           <button
             onClick={() => scroll(1)}
             className="w-9 h-9 rounded-full border border-border bg-surface flex items-center justify-center text-sage hover:bg-card hover:border-sage/30 transition cursor-pointer"
-            aria-label="Desplazar planes hacia la derecha"
+            aria-label="Desplazar hacia la derecha"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -62,7 +62,6 @@ export default function WeekSlider({ ideas, apiUrl }) {
         className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory"
         style={{ scrollbarWidth: 'none' }}
         role="list"
-        aria-label="Lista de planes próximos"
       >
         {ideas.map(idea => {
           const imageUrl = idea.imagenUrl
@@ -73,7 +72,7 @@ export default function WeekSlider({ ideas, apiUrl }) {
             <Link
               key={idea.id}
               href={`/idea/${idea.id}`}
-              className="group snap-start shrink-0 w-72 rounded-2xl border border-border overflow-hidden hover:border-sage/30 hover:shadow-[0_8px_30px_rgba(171,200,162,0.08)] hover:-translate-y-1 transition-all duration-300 relative h-48"
+              className={`group snap-start shrink-0 w-72 rounded-2xl border border-border overflow-hidden hover:border-sage/30 hover:shadow-[0_8px_30px_rgba(171,200,162,0.08)] hover:-translate-y-1 transition-all duration-300 relative h-48 ${isPast ? 'opacity-70 hover:opacity-100' : ''}`}
               role="listitem"
               aria-label={`${idea.titulo} — ${idea.ubicacion}`}
             >

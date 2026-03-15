@@ -25,3 +25,27 @@
   --font-logo: 'GC EpicPro', sans-serif;
   --font-body: var(--font-roboto), sans-serif;
 }
+
+/* Modo claro */
+.light {
+  --color-dark: #f2f5f0;
+  --color-surface: #e4ebe1;
+  --color-card: #edf2eb;
+  --color-card-hover: #dfe8dc;
+  --color-border: #c8d5c4;
+  --color-border-light: #b5c7b0;
+  --color-light: #1a2417;
+  --color-sage: #3d6b35;
+  --color-sage-dim: #5a8a50;
+  --color-accent: #105A41;
+  --color-accent-light: #0e7a5a;
+}
+
+/* Header y footer siempre mantienen colores fijos */
+.theme-fixed {
+  --color-light: #fffffc;
+  --color-sage: #ABC8A2;
+  --color-sage-dim: #7a9a72;
+  --color-accent: #105A41;
+  --color-accent-light: #1a7a5a;
+}
