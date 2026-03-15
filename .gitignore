@@ -1,2 +1,8 @@
-#ignore node_modules
 node_modules/
+.env
+.env.local
+*.db
+*.db-journal
+.next/
+uploads/*
+!uploads/.gitkeep

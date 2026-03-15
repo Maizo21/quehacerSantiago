@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'GC EpicPro';
+  src: url('../fonts/GC-EPICPRO.woff2') format('woff2'),
+       url('../fonts/GC-EPICPRO.woff') format('woff'),
+       url('../fonts/GC-EPICPRO.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --color-dark: #001001;
+  --color-surface: #1A2417;
+  --color-card: #1e2d1f;
+  --color-card-hover: #253828;
+  --color-border: #2a3d2c;
+  --color-border-light: #3a5340;
+  --color-light: #fffffc;
+  --color-sage: #ABC8A2;
+  --color-sage-dim: #7a9a72;
+  --color-accent: #105A41;
+  --color-accent-light: #1a7a5a;
+  --font-logo: 'GC EpicPro', sans-serif;
+  --font-body: var(--font-roboto), sans-serif;
+}

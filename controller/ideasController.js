@@ -1,83 +1,211 @@
 const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
+const path = require('path');
 const ideasModels = require('../Models/ideasModels');
-const { validateLength } = ideasModels;
-let ideasData = ideasModels.readIdeasData();
+const { validateLength, prisma } = ideasModels;
 
-exports.getAllIdeas = (req, res) =>{
-    const id = req.query.id
-    const ideaFound = ideasData.actividades_santiago.ideas.find(idea => idea.ID == id)
+exports.getAllIdeas = async (req, res) => {
+    const { id, search, tag } = req.query;
 
-    if(!id){
-        return res.status(200).json(ideasData)
-    }else if(ideaFound){
-        console.log(id);
-        console.log(ideaFound);
-        res.status(200).json(ideaFound)
-    }else{
-        res.status(404).json({Error: 'Idea no existe'})
+    // Buscar por ID (tu lógica original)
+    if(id){
+        const ideaFound = await prisma.idea.findUnique({
+            where: { id },
+            include: { tags: { include: { tag: true } } }
+        });
+
+        if(ideaFound){
+            return res.status(200).json({
+                ...ideaFound,
+                tags: ideaFound.tags.map(t => t.tag.nombre)
+            });
+        }
+        return res.status(404).json({Error: 'Idea no existe'});
     }
+
+    // Filtros de búsqueda y etiquetas
+    const where = {};
+
+    if(search){
+        where.OR = [
+            { titulo: { contains: search } },
+            { descripcion: { contains: search } },
+            { ubicacion: { contains: search } }
+        ];
+    }
+
+    if(tag){
+        const tags = Array.isArray(tag) ? tag : [tag];
+        where.tags = {
+            some: {
+                tag: { nombre: { in: tags } }
+            }
+        };
+    }
+
+    const ideas = await prisma.idea.findMany({
+        where,
+        include: { tags: { include: { tag: true } } },
+        orderBy: { creadoEl: 'desc' }
+    });
+
+    const transformed = ideas.map(idea => ({
+        ...idea,
+        tags: idea.tags.map(t => t.tag.nombre)
+    }));
+
+    res.status(200).json({ ideas: transformed, total: transformed.length });
 }
 
-exports.createIdea = (req, res) =>{
-    const { idea, ubicacion, etiquetas } = req.body;
+exports.createIdea = async (req, res) => {
+    const { titulo, descripcion, ubicacion, tags, fecha, destacado } = req.body;
 
-    if(!idea || !ubicacion || !etiquetas){
+    if(!titulo || !ubicacion || !tags){
         return res.status(400).json({Error: 'Faltan datos'})
     }
 
-    if(!validateLength(idea, 1, 100) || !validateLength(ubicacion, 1, 100)){
+    if(!validateLength(titulo, 1, 200) || !validateLength(ubicacion, 1, 100)){
         return res.status(400).json({Error: 'Los datos debe tener entre 1 y 100 caracteres'})
     }
 
-    const ideaNew = {
-        ID: uuidv4(),
-        idea: idea,
-        ubicacion: ubicacion,
-        etiquetas: etiquetas
-    }
+    const tagNames = tags.split(',').map(t => t.trim()).filter(Boolean);
 
-    ideasData.actividades_santiago.ideas.push(ideaNew);
+    const tagRecords = await Promise.all(
+        tagNames.map(nombre =>
+            prisma.tag.upsert({
+                where: { nombre },
+                update: {},
+                create: { nombre }
+            })
+        )
+    );
 
-    
+    const ideaNew = await prisma.idea.create({
+        data: {
+            titulo,
+            descripcion: descripcion || null,
+            ubicacion,
+            imagenUrl: req.file ? req.file.filename : null,
+            fecha: fecha ? new Date(fecha) : null,
+            destacado: destacado === 'true',
+            creadoPor: req.userName || null,
+            tags: {
+                create: tagRecords.map(tag => ({ tagId: tag.id }))
+            }
+        },
+        include: { tags: { include: { tag: true } } }
+    });
 
-    res.status(201).json(ideaNew);    
+    res.status(201).json({
+        ...ideaNew,
+        tags: ideaNew.tags.map(t => t.tag.nombre)
+    });
 }
 
-exports.deleteIdea = (req, res) =>{
+exports.deleteIdea = async (req, res) => {
     const id = req.query.id;
-    const ideaIndex = ideasData.actividades_santiago.ideas.findIndex(idea => idea.ID == id);
-    if(ideaIndex === -1){
+
+    const idea = await prisma.idea.findUnique({ where: { id } });
+    if(!idea){
         return res.status(404).json({Error: 'Idea no encontrada'});
     }
-    ideasData.actividades_santiago.ideas.splice(ideaIndex, 1);
-    fs.writeFileSync(`${__dirname}/../dev-data/ideas.json`, JSON.stringify(ideasData, null, 2), 'utf-8');
+
+    // Eliminar imagen si existe
+    if(idea.imagenUrl){
+        const imgPath = path.join(__dirname, '../uploads', idea.imagenUrl);
+        if(fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+
+    await prisma.idea.delete({ where: { id } });
     res.status(200).json({Mensaje: 'Idea eliminada correctamente'});
 }
 
-exports.updateIdea = (req, res) =>{
+exports.updateIdea = async (req, res) => {
     const id = req.query.id;
-    const { idea, ubicacion, etiquetas } = req.body;
-    const ideaFound = ideasData.actividades_santiago.ideas.find(idea => idea.ID == id);
-    if(!ideaFound){
+    const { titulo, descripcion, ubicacion, tags, fecha, destacado } = req.body;
+
+    const existing = await prisma.idea.findUnique({ where: { id } });
+    if(!existing){
         return res.status(404).json({Error: 'Idea no encontrada'});
     }
 
-    if(!validateLength(idea, 1, 100) || !validateLength(ubicacion, 1, 100)){
-        return res.status(400).json({Error: 'Los datos debe tener entre 1 y 100 caracteres'})
+    if(titulo && !validateLength(titulo, 1, 200)){
+        return res.status(400).json({Error: 'El título debe tener entre 1 y 200 caracteres'})
+    }
+    if(ubicacion && !validateLength(ubicacion, 1, 100)){
+        return res.status(400).json({Error: 'La ubicación debe tener entre 1 y 100 caracteres'})
     }
 
-    ideaFound.idea = idea;
-    ideaFound.ubicacion = ubicacion;
-    ideaFound.etiquetas = etiquetas;
-    fs.writeFileSync(`${__dirname}/../dev-data/ideas.json`, JSON.stringify(ideasData, null, 2), 'utf-8');
-    res.status(200).json(ideaFound);
+    // Si hay nueva imagen, eliminar la anterior
+    if(req.file && existing.imagenUrl){
+        const oldPath = path.join(__dirname, '../uploads', existing.imagenUrl);
+        if(fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+
+    const data = {};
+    if(titulo) data.titulo = titulo;
+    if(descripcion !== undefined) data.descripcion = descripcion || null;
+    if(ubicacion) data.ubicacion = ubicacion;
+    if(fecha !== undefined) data.fecha = fecha ? new Date(fecha) : null;
+    if(destacado !== undefined) data.destacado = destacado === 'true';
+    if(req.file) data.imagenUrl = req.file.filename;
+
+    if(tags){
+        const tagNames = tags.split(',').map(t => t.trim()).filter(Boolean);
+        const tagRecords = await Promise.all(
+            tagNames.map(nombre =>
+                prisma.tag.upsert({
+                    where: { nombre },
+                    update: {},
+                    create: { nombre }
+                })
+            )
+        );
+        await prisma.ideaTag.deleteMany({ where: { ideaId: id } });
+        data.tags = {
+            create: tagRecords.map(tag => ({ tagId: tag.id }))
+        };
+    }
+
+    const ideaUpdated = await prisma.idea.update({
+        where: { id },
+        data,
+        include: { tags: { include: { tag: true } } }
+    });
+
+    res.status(200).json({
+        ...ideaUpdated,
+        tags: ideaUpdated.tags.map(t => t.tag.nombre)
+    });
 }
 
-exports.getRandomIdea = (req, res) => {
-    const randomIndex = Math.floor(Math.random() * ideasData.actividades_santiago.ideas.length);
-    console.log(randomIndex);
-    const randomIdea = ideasData.actividades_santiago.ideas[randomIndex];
-    console.log(randomIdea);
-    res.status(200).json(randomIdea);
+exports.getRandomIdea = async (req, res) => {
+    const count = await prisma.idea.count();
+    if(count === 0){
+        return res.status(404).json({Error: 'No hay ideas disponibles'});
+    }
+
+    const randomIndex = Math.floor(Math.random() * count);
+    const [randomIdea] = await prisma.idea.findMany({
+        skip: randomIndex,
+        take: 1,
+        include: { tags: { include: { tag: true } } }
+    });
+
+    res.status(200).json({
+        ...randomIdea,
+        tags: randomIdea.tags.map(t => t.tag.nombre)
+    });
+}
+
+exports.getAllTags = async (req, res) => {
+    const tags = await prisma.tag.findMany({
+        orderBy: { nombre: 'asc' },
+        include: { _count: { select: { ideas: true } } }
+    });
+
+    res.json(tags.map(t => ({
+        id: t.id,
+        nombre: t.nombre,
+        count: t._count.ideas
+    })));
 }

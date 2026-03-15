@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /c/Users/nan/Desktop/quehacerSantiago/backend/prisma /c/Users/nan/Desktop/quehacerSantiago/backend/controllers /c/Users/nan/Desktop/quehacerSantiago/backend/routes /c/Users/nan/Desktop/quehacerSantiago/backend/uploads)",
+      "Bash(mkdir -p /c/Users/nan/Desktop/quehacerSantiago/frontend/src/app /c/Users/nan/Desktop/quehacerSantiago/frontend/src/components /c/Users/nan/Desktop/quehacerSantiago/frontend/src/context /c/Users/nan/Desktop/quehacerSantiago/frontend/public)",
+      "Bash(touch /c/Users/nan/Desktop/quehacerSantiago/backend/uploads/.gitkeep)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(node prisma/seed.js)",
+      "Bash(node -e \":*)",
+      "Bash(timeout 5 node -e \":*)",
+      "Bash(npx next:*)",
+      "Bash(curl -s http://localhost:8000/ideas)",
+      "Bash(curl -s http://localhost:8000/tags)",
+      "Bash(curl -s http://localhost:8000/)",
+      "Bash(node -e \"try { const r = require\\(''./Routes/ideasRoute''\\); console.log\\(''Routes loaded OK:'', Object.keys\\(r\\)\\); } catch\\(e\\) { console.error\\(''ERROR:'', e.message\\); }\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":8000\")",
+      "Bash(findstr LISTENING)",
+      "Bash(taskkill //PID 18804 //F)",
+      "Bash(curl -s \"http://localhost:8000/ideas?tag=outdoor\")",
+      "Bash(node -e \"process.stdin.on\\(''''data'''',d=>{const j=JSON.parse\\(d\\);console.log\\(''''Tag filter works:'''',j.ideas.length,''''results for outdoor''''\\)}\\)\")",
+      "Bash(curl -s \"http://localhost:8000/ideas?search=cerro\")",
+      "Bash(node -e \"process.stdin.on\\(''''data'''',d=>{const j=JSON.parse\\(d\\);console.log\\(''''Search works:'''',j.ideas.length,''''results for cerro''''\\)}\\)\")",
+      "Bash(npm list:*)",
+      "Bash(node -e \"const clerk = require\\(''@clerk/nextjs''\\); console.log\\(Object.keys\\(clerk\\)\\)\")",
+      "Bash(node -e \"const clerk = require\\(''@clerk/nextjs''\\); console.log\\(Object.keys\\(clerk\\).filter\\(k => k.includes\\(''Show''\\) || k.includes\\(''Loaded''\\) || k.includes\\(''Clerk''\\)\\)\\)\")",
+      "Bash(node -e \"try { require\\(''@clerk/localizations''\\); console.log\\(''OK''\\); } catch\\(e\\) { console.log\\(e.message\\); }\")",
+      "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); console.log\\(''CLERK_SECRET_KEY:'', process.env.CLERK_SECRET_KEY ? ''set'' : ''missing''\\); console.log\\(''AUTHORIZED_EMAILS:'', process.env.AUTHORIZED_EMAILS\\);\")",
+      "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); const { requireAuthorized } = require\\(''./middleware/auth''\\); console.log\\(''Middleware loaded:'', typeof requireAuthorized\\);\")",
+      "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); console.log\\(''Emails:'', process.env.AUTHORIZED_EMAILS\\);\")",
+      "Bash(node -e \"const clerk = require\\(''@clerk/express''\\); console.log\\(Object.keys\\(clerk\\)\\)\")",
+      "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); const { createClerkClient } = require\\(''@clerk/express''\\); const c = createClerkClient\\({ secretKey: process.env.CLERK_SECRET_KEY }\\); console.log\\(''Client created:'', typeof c.verifyToken, typeof c.users\\);\")"
+    ]
+  }
+}
