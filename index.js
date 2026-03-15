@@ -6,12 +6,8 @@ const app = express();
 const PORT = Number(process.env.PORT) || 8000;
 const ideasRoute = require('./Routes/ideasRoute');
 
-const allowedOrigins = process.env.FRONTEND_URL
-    ? [process.env.FRONTEND_URL, 'http://localhost:3000']
-    : ['http://localhost:3000'];
-
 app.use(cors({
-    origin: allowedOrigins,
+    origin: true,
     credentials: true
 }));
 app.use(express.json());

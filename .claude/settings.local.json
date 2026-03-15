@@ -30,7 +30,8 @@
       "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); const { requireAuthorized } = require\\(''./middleware/auth''\\); console.log\\(''Middleware loaded:'', typeof requireAuthorized\\);\")",
       "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); console.log\\(''Emails:'', process.env.AUTHORIZED_EMAILS\\);\")",
       "Bash(node -e \"const clerk = require\\(''@clerk/express''\\); console.log\\(Object.keys\\(clerk\\)\\)\")",
-      "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); const { createClerkClient } = require\\(''@clerk/express''\\); const c = createClerkClient\\({ secretKey: process.env.CLERK_SECRET_KEY }\\); console.log\\(''Client created:'', typeof c.verifyToken, typeof c.users\\);\")"
+      "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); const { createClerkClient } = require\\(''@clerk/express''\\); const c = createClerkClient\\({ secretKey: process.env.CLERK_SECRET_KEY }\\); console.log\\(''Client created:'', typeof c.verifyToken, typeof c.users\\);\")",
+      "WebFetch(domain:quehacer-santiago-3yj6yngs5-maizo21s-projects.vercel.app)"
     ]
   }
 }

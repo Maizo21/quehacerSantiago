@@ -37,7 +37,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es" className={roboto.variable}>
       <body className="min-h-screen flex flex-col bg-dark text-light font-body">
-        <ClerkProvider localization={esES}>
+        <ClerkProvider localization={esES} dynamic>
           <Providers>
             <Header />
             <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
