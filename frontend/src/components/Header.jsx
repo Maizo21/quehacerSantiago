@@ -54,7 +54,7 @@ export default function Header() {
     <header className="bg-accent sticky top-0 z-40 theme-fixed" role="banner">
       <nav className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3" aria-label="Navegación principal">
         <Link href="/" className="font-logo text-2xl tracking-wide text-light whitespace-nowrap hidden sm:block" aria-label="Qué Hacer en Santiago — Inicio">
-          QUÉ HACER EN SANTIAGO
+          QUE HACER EN SANTIAGO
         </Link>
         <Link href="/" className="font-logo text-2xl tracking-wide text-light sm:hidden" aria-label="Qué Hacer en Santiago — Inicio">
           QHS
