@@ -6,8 +6,12 @@ const app = express();
 const PORT = Number(process.env.PORT) || 8000;
 const ideasRoute = require('./Routes/ideasRoute');
 
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+    .split(',')
+    .map(o => o.trim());
+
 app.use(cors({
-    origin: true,
+    origin: allowedOrigins,
     credentials: true
 }));
 app.use(express.json());
