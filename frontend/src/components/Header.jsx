@@ -67,6 +67,9 @@ export default function Header() {
           <Link href="/planes" className="text-light/80 hover:text-light text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-light/10 transition">
             Todos los planes
           </Link>
+          <Link href="/random" className="text-light/80 hover:text-light text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-light/10 transition">
+            Random
+          </Link>
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowCategories(!showCategories)}

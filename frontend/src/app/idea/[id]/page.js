@@ -116,9 +116,7 @@ export default function IdeaDetailPage({ params }) {
     );
   }
 
-  const imageUrl = idea.imagenUrl
-    ? `${API_URL}/uploads/${idea.imagenUrl}`
-    : null;
+  const imageUrl = idea.imagenUrl || null;
 
   return (
     <article className="max-w-3xl mx-auto">

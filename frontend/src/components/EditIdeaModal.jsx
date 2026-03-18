@@ -14,7 +14,7 @@ export default function EditIdeaModal({ idea, onClose, onUpdated, apiUrl, getTok
   const [selectedTags, setSelectedTags] = useState(idea.tags || []);
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(
-    idea.imagenUrl ? `${apiUrl}/uploads/${idea.imagenUrl}` : null
+    idea.imagenUrl || null
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

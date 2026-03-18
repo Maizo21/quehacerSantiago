@@ -1,25 +1,14 @@
-const fs = require('fs');
-const path = require('path');
 const sanitizeHtml = require('sanitize-html');
 const ideasModels = require('../Models/ideasModels');
 const { validateLength, prisma } = ideasModels;
 
-const uploadsDir = path.resolve(__dirname, '../uploads');
-
 // Sanitizar texto — eliminar todo HTML
 const clean = (str) => str ? sanitizeHtml(str, { allowedTags: [], allowedAttributes: {} }).trim() : str;
 
-// Validar que un path esté dentro de uploads/
-const safePath = (filename) => {
-    const resolved = path.resolve(uploadsDir, filename);
-    if (!resolved.startsWith(uploadsDir)) return null;
-    return resolved;
-};
-
-// Eliminar archivo de forma segura
-const safeUnlink = (filename) => {
-    const filePath = safePath(filename);
-    if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
+// Convertir archivo en memoria a data URI base64
+const fileToBase64 = (file) => {
+    const base64 = file.buffer.toString('base64');
+    return `data:${file.mimetype};base64,${base64}`;
 };
 
 exports.getAllIdeas = async (req, res) => {
@@ -123,7 +112,7 @@ exports.createIdea = async (req, res) => {
             titulo,
             descripcion: descripcion || null,
             ubicacion,
-            imagenUrl: req.file ? req.file.filename : null,
+            imagenUrl: req.file ? fileToBase64(req.file) : null,
             fecha: fecha ? new Date(fecha) : null,
             destacado: destacado === 'true',
             creadoPor: req.userName || null,
@@ -147,8 +136,6 @@ exports.deleteIdea = async (req, res) => {
     if(!idea){
         return res.status(404).json({Error: 'Idea no encontrada'});
     }
-
-    if(idea.imagenUrl) safeUnlink(idea.imagenUrl);
 
     await prisma.idea.delete({ where: { id } });
     res.status(200).json({Mensaje: 'Idea eliminada correctamente'});
@@ -176,8 +163,6 @@ exports.updateIdea = async (req, res) => {
         return res.status(400).json({Error: 'La descripción no puede superar los 5000 caracteres'})
     }
 
-    if(req.file && existing.imagenUrl) safeUnlink(existing.imagenUrl);
-
     const data = {};
     if(titulo) data.titulo = titulo;
     if(descripcion !== undefined) data.descripcion = descripcion || null;
@@ -189,7 +174,7 @@ exports.updateIdea = async (req, res) => {
         data.fecha = fecha ? new Date(fecha) : null;
     }
     if(destacado !== undefined) data.destacado = destacado === 'true';
-    if(req.file) data.imagenUrl = req.file.filename;
+    if(req.file) data.imagenUrl = fileToBase64(req.file);
 
     if(tags){
         const tagNames = clean(tags).split(',').map(t => t.trim()).filter(Boolean);
@@ -229,13 +214,26 @@ exports.updateIdea = async (req, res) => {
 }
 
 exports.getRandomIdea = async (req, res) => {
-    const count = await prisma.idea.count();
+    const { tag } = req.query;
+    const where = {};
+
+    if(tag){
+        const tags = Array.isArray(tag) ? tag : [tag];
+        where.tags = {
+            some: {
+                tag: { nombre: { in: tags } }
+            }
+        };
+    }
+
+    const count = await prisma.idea.count({ where });
     if(count === 0){
-        return res.status(404).json({Error: 'No hay ideas disponibles'});
+        return res.status(404).json({Error: 'No hay ideas disponibles con esos filtros'});
     }
 
     const randomIndex = Math.floor(Math.random() * count);
     const [randomIdea] = await prisma.idea.findMany({
+        where,
         skip: randomIndex,
         take: 1,
         include: { tags: { include: { tag: true } } }

@@ -40,9 +40,7 @@ function getGradient(id) {
 export default function IdeaCard({ idea, apiUrl, isAdmin, getToken, onDeleted }) {
   const [showAllTags, setShowAllTags] = useState(false);
 
-  const imageUrl = idea.imagenUrl
-    ? `${apiUrl}/uploads/${idea.imagenUrl}`
-    : null;
+  const imageUrl = idea.imagenUrl || null;
 
   const visibleTags = showAllTags ? idea.tags : idea.tags.slice(0, 3);
   const hiddenCount = idea.tags.length - 3;

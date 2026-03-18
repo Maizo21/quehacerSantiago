@@ -6,19 +6,9 @@ const path = require('path');
 const ideasController = require('../controller/ideasController')
 const { requireAuth, requireAuthorized, requireAdmin } = require('../middleware/auth')
 
-// Configuración de multer para subir imágenes
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '../uploads'));
-    },
-    filename: (req, file, cb) => {
-        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
-        cb(null, uniqueName);
-    }
-});
-
+// Multer en memoria para convertir a base64
 const upload = multer({
-    storage,
+    storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const allowed = /jpeg|jpg|png|gif|webp/;
