@@ -96,10 +96,10 @@ export default function Home() {
         <EmptyState />
       ) : (
         <>
-          <SectionSlider title="ESTA SEMANA" ideas={weekPlans} apiUrl={API_URL} />
-          <SectionSlider title="OUTDOOR" ideas={outdoorPlans} apiUrl={API_URL} />
-          <SectionSlider title="CULTURAL" ideas={culturalPlans} apiUrl={API_URL} />
-          <SectionSlider title="GRATIS" ideas={freePlans} apiUrl={API_URL} />
+          <SectionSlider title="ESTA SEMANA" ideas={weekPlans} />
+          <SectionSlider title="OUTDOOR" ideas={outdoorPlans} />
+          <SectionSlider title="CULTURAL" ideas={culturalPlans} />
+          <SectionSlider title="GRATIS" ideas={freePlans} />
 
           {/* Sugerencias — grid limitado a 20 */}
           <section className="mb-10">
@@ -116,7 +116,7 @@ export default function Home() {
             </div>
           </section>
 
-          <SectionSlider title="YA PASARON" ideas={pastPlans} apiUrl={API_URL} isPast />
+          <SectionSlider title="YA PASARON" ideas={pastPlans} isPast />
         </>
       )}
 

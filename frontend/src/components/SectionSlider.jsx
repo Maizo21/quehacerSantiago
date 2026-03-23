@@ -18,7 +18,7 @@ function getGradient(id) {
   return GRADIENTS[Math.abs(hash) % GRADIENTS.length];
 }
 
-export default function SectionSlider({ title, ideas, apiUrl, isPast = false }) {
+export default function SectionSlider({ title, ideas, isPast = false }) {
   const scrollRef = useRef(null);
 
   if (!ideas || ideas.length === 0) return null;
@@ -64,9 +64,7 @@ export default function SectionSlider({ title, ideas, apiUrl, isPast = false }) 
         role="list"
       >
         {ideas.map(idea => {
-          const imageUrl = idea.imagenUrl
-            ? `${apiUrl}/uploads/${idea.imagenUrl}`
-            : null;
+          const imageUrl = idea.imagenUrl || null;
 
           return (
             <Link
