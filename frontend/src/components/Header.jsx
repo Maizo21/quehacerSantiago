@@ -77,6 +77,11 @@ export default function Header() {
           <Link href="/random" className="text-light/80 hover:text-light text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-light/10 transition">
             Random
           </Link>
+          {isSignedIn && (
+            <Link href="/mis-planes" className="text-light/80 hover:text-light text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-light/10 transition">
+              Mis Planes
+            </Link>
+          )}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowCategories(!showCategories)}
@@ -172,6 +177,15 @@ export default function Header() {
               >
                 Random
               </Link>
+              {isSignedIn && (
+                <Link
+                  href="/mis-planes"
+                  className="block px-4 py-2.5 text-sm text-sage-dim hover:text-light hover:bg-surface transition"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  Mis Planes
+                </Link>
+              )}
               <div className="border-t border-border my-1" />
               <button
                 onClick={() => setShowMobileCategories(!showMobileCategories)}

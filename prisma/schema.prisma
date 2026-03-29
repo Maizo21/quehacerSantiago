@@ -18,6 +18,7 @@ model Idea {
   creadoPor   String?
   creadoEl    DateTime  @default(now())
   tags        IdeaTag[]
+  realizados  PlanRealizado[]
 }
 
 model Tag {
@@ -33,4 +34,18 @@ model IdeaTag {
   tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([ideaId, tagId])
+}
+
+model PlanRealizado {
+  id       String   @id @default(uuid())
+  userId   String
+  ideaId   String
+  fecha    DateTime
+  foto     String?
+  nota     String?
+  creadoEl DateTime @default(now())
+  idea     Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ideaId])
+  @@index([userId, fecha])
 }

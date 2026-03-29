@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 
 const ideasController = require('../controller/ideasController')
+const misPlanesController = require('../controller/misPlanesController')
 const { requireAuth, requireAuthorized, requireAdmin } = require('../middleware/auth')
 
 // Multer en memoria para convertir a base64
@@ -28,6 +29,12 @@ router.delete('/ideas', (req, res, next) => getWriteLimiter(req)(req, res, next)
 router.put('/ideas', (req, res, next) => getWriteLimiter(req)(req, res, next), requireAuthorized, upload.single('imagen'), ideasController.updateIdea);
 router.get('/ideasRandom', ideasController.getRandomIdea);
 router.get('/tags', ideasController.getAllTags);
+
+// Mis Planes — registro personal de planes realizados
+router.get('/mis-planes', requireAuth, misPlanesController.getMyPlans);
+router.post('/mis-planes', (req, res, next) => getWriteLimiter(req)(req, res, next), requireAuth, upload.single('foto'), misPlanesController.markDone);
+router.get('/mis-planes/check/:ideaId', requireAuth, misPlanesController.checkDone);
+router.delete('/mis-planes/:id', (req, res, next) => getWriteLimiter(req)(req, res, next), requireAuth, misPlanesController.removeDone);
 router.get('/auth/check', requireAuth, (req, res) => {
     const AUTHORIZED = (process.env.AUTHORIZED_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
     const ADMINS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());

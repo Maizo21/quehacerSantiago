@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuthorized } from '@/context/AuthContext';
 import { useAuth } from '@clerk/nextjs';
 import EditIdeaModal from '@/components/EditIdeaModal';
+import MarkDoneModal from '@/components/MarkDoneModal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -35,6 +36,9 @@ export default function IdeaDetailPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDoneModal, setShowDoneModal] = useState(false);
+  const [doneRecord, setDoneRecord] = useState(null);
+  const { isSignedIn } = useAuth();
 
   const fetchIdea = async () => {
     try {
@@ -50,9 +54,41 @@ export default function IdeaDetailPage({ params }) {
     }
   };
 
+  const checkDoneStatus = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const res = await fetch(`${API_URL}/mis-planes/check/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDoneRecord(data.done ? data.record : null);
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     fetchIdea();
   }, [id]);
+
+  useEffect(() => {
+    if (isSignedIn) checkDoneStatus();
+  }, [isSignedIn, id]);
+
+  const handleUndone = async () => {
+    if (!doneRecord || !confirm('¿Desmarcar este plan como realizado?')) return;
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_URL}/mis-planes/${doneRecord.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setDoneRecord(null);
+    } catch {
+      alert('Error al desmarcar');
+    }
+  };
 
   const handleShare = async () => {
     const url = `${window.location.origin}/idea/${id}`;
@@ -215,16 +251,44 @@ export default function IdeaDetailPage({ params }) {
         ))}
       </ul>
 
-      <button
-        onClick={handleShare}
-        className="inline-flex items-center gap-2 bg-accent text-light px-5 py-2.5 rounded-lg font-medium hover:bg-accent-light transition cursor-pointer"
-        aria-label={`Compartir plan ${idea.titulo}`}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-        </svg>
-        Enviar
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button
+          onClick={handleShare}
+          className="inline-flex items-center gap-2 bg-accent text-light px-5 py-2.5 rounded-lg font-medium hover:bg-accent-light transition cursor-pointer"
+          aria-label={`Compartir plan ${idea.titulo}`}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+          Enviar
+        </button>
+
+        {isSignedIn && (
+          doneRecord ? (
+            <button
+              onClick={handleUndone}
+              className="inline-flex items-center gap-2 bg-sage/15 text-sage border border-sage/30 px-5 py-2.5 rounded-lg font-medium hover:bg-sage/25 transition cursor-pointer"
+              aria-label="Desmarcar plan como realizado"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+              </svg>
+              Realizado
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowDoneModal(true)}
+              className="inline-flex items-center gap-2 border border-sage/30 text-sage px-5 py-2.5 rounded-lg font-medium hover:bg-sage/10 transition cursor-pointer"
+              aria-label="Marcar plan como realizado"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Marcar como realizado
+            </button>
+          )
+        )}
+      </div>
 
       {idea.creadoPor && (
         <footer className="text-sage-dim text-sm mt-8 border-t border-border pt-4">
@@ -238,6 +302,16 @@ export default function IdeaDetailPage({ params }) {
           onClose={() => setShowEditModal(false)}
           onUpdated={fetchIdea}
           apiUrl={API_URL}
+          getToken={getToken}
+        />
+      )}
+
+      {showDoneModal && (
+        <MarkDoneModal
+          ideaId={id}
+          ideaTitle={idea.titulo}
+          onClose={() => setShowDoneModal(false)}
+          onMarked={() => checkDoneStatus()}
           getToken={getToken}
         />
       )}
