@@ -22,25 +22,31 @@ export default function DayDetail({ day, month, year, plans, onRemove }) {
             {plan.foto && (
               <img
                 src={plan.foto}
-                alt={`Foto de ${plan.idea.titulo}`}
+                alt={`Foto de ${plan.titulo}`}
                 className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover shrink-0 border border-border"
               />
             )}
 
             <div className="flex-1 min-w-0">
-              <Link
-                href={`/idea/${plan.ideaId}`}
-                className="font-semibold text-light hover:text-sage transition line-clamp-1"
-              >
-                {plan.idea.titulo}
-              </Link>
+              {plan.idea ? (
+                <Link
+                  href={`/idea/${plan.ideaId}`}
+                  className="font-semibold text-light hover:text-sage transition line-clamp-1"
+                >
+                  {plan.titulo}
+                </Link>
+              ) : (
+                <span className="font-semibold text-light line-clamp-1" title="Este plan ya no está disponible">
+                  {plan.titulo}
+                </span>
+              )}
 
               <p className="text-sm text-sage-dim mt-1 flex items-center gap-1">
                 <svg className="w-4 h-4 shrink-0 text-sage" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span className="truncate">{plan.idea.ubicacion}</span>
+                <span className="truncate">{plan.ubicacion}</span>
               </p>
 
               {plan.nota && (
@@ -50,7 +56,7 @@ export default function DayDetail({ day, month, year, plans, onRemove }) {
               <button
                 onClick={() => onRemove(plan.id)}
                 className="text-xs text-sage-dim/60 hover:text-red-400 mt-2 transition cursor-pointer"
-                aria-label={`Desmarcar ${plan.idea.titulo}`}
+                aria-label={`Desmarcar ${plan.titulo}`}
               >
                 Desmarcar
               </button>

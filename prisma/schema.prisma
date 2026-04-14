@@ -37,14 +37,16 @@ model IdeaTag {
 }
 
 model PlanRealizado {
-  id       String   @id @default(uuid())
-  userId   String
-  ideaId   String
-  fecha    DateTime
-  foto     String?
-  nota     String?
-  creadoEl DateTime @default(now())
-  idea     Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  userId    String
+  ideaId    String?
+  titulo    String
+  ubicacion String
+  fecha     DateTime
+  foto      String?
+  nota      String?
+  creadoEl  DateTime @default(now())
+  idea      Idea?    @relation(fields: [ideaId], references: [id], onDelete: SetNull)
 
   @@unique([userId, ideaId])
   @@index([userId, fecha])

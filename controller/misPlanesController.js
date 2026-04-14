@@ -59,11 +59,12 @@ exports.markDone = async (req, res) => {
             data: {
                 userId: req.userId,
                 ideaId,
+                titulo: idea.titulo,
+                ubicacion: idea.ubicacion,
                 fecha: new Date(fecha),
                 foto: req.file ? fileToBase64(req.file) : null,
                 nota: nota ? clean(nota) : null
-            },
-            include: { idea: { select: { titulo: true, ubicacion: true } } }
+            }
         });
 
         res.status(201).json(record);
@@ -96,9 +97,7 @@ exports.getMyPlans = async (req, res) => {
                 fecha: { gte: start, lt: end }
             },
             include: {
-                idea: {
-                    select: { id: true, titulo: true, ubicacion: true, imagenUrl: false }
-                }
+                idea: { select: { id: true } }
             },
             orderBy: { fecha: 'asc' }
         });
