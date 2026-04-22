@@ -11,7 +11,7 @@ function getContextualQuestion() {
   const day = today.getDay();
   if (day === 5) return '¿QUÉ HACES ESTE FIN DE SEMANA?';
   if (day === 6 || day === 0) return '¿QUÉ HACES HOY?';
-  return '¿QUÉ PLAN TIENES EN MENTE?';
+  return '¿TIENES PLAN PARA HOY?';
 }
 
 function getTodayLabel() {
@@ -44,19 +44,19 @@ export default function HomeHero({ activeCategory }) {
           <FilterChips activeCategory={activeCategory} />
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
           <Link
             href="/random"
-            className="inline-flex items-center gap-2 bg-accent text-white px-5 py-2.5 rounded-lg font-medium hover:bg-accent-light transition cursor-pointer"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 bg-accent text-white px-3 py-2 text-sm sm:px-5 sm:py-2.5 sm:text-base rounded-lg font-medium hover:bg-accent-light transition cursor-pointer whitespace-nowrap"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             Sorpréndeme
           </Link>
           <Link
             href="/planes"
-            className="inline-flex items-center gap-2 text-sage border border-sage/30 px-5 py-2.5 rounded-lg font-medium hover:bg-sage/10 transition cursor-pointer"
+            className="flex items-center justify-center gap-2 text-sage border border-sage/30 px-3 py-2 text-sm sm:px-5 sm:py-2.5 sm:text-base rounded-lg font-medium hover:bg-sage/10 transition cursor-pointer whitespace-nowrap"
           >
             Ver todos los planes
           </Link>
