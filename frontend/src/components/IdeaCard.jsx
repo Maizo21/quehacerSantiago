@@ -143,7 +143,7 @@ export default function IdeaCard({ idea, apiUrl, isAdmin, getToken, onDeleted })
 
         <button
           onClick={handleShare}
-          className="w-full bg-accent text-light py-2 rounded-lg text-sm font-medium hover:bg-accent-light transition cursor-pointer flex items-center justify-center gap-2 mb-3"
+          className="w-full bg-accent text-white py-2 rounded-lg text-sm font-medium hover:bg-accent-light transition cursor-pointer flex items-center justify-center gap-2 mb-3"
           aria-label={`Compartir plan ${idea.titulo}`}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

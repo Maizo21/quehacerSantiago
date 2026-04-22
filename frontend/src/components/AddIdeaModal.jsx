@@ -185,7 +185,7 @@ export default function AddIdeaModal({ onClose, onCreated, apiUrl, getToken }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-accent text-light py-2.5 rounded-lg font-medium hover:bg-accent-light disabled:opacity-50 transition cursor-pointer"
+            className="w-full bg-accent text-white py-2.5 rounded-lg font-medium hover:bg-accent-light disabled:opacity-50 transition cursor-pointer"
           >
             {loading ? 'Guardando...' : 'Guardar plan'}
           </button>

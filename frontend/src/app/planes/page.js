@@ -101,7 +101,7 @@ function PlanesContent() {
         {isAuthorized && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="bg-accent text-light px-5 py-2.5 rounded-lg hover:bg-accent-light transition font-medium cursor-pointer"
+            className="bg-accent text-white px-5 py-2.5 rounded-lg hover:bg-accent-light transition font-medium cursor-pointer"
           >
             + Agregar Plan
           </button>

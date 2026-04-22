@@ -255,7 +255,7 @@ export default function IdeaDetailPage({ params }) {
       <div className="flex flex-wrap gap-3">
         <button
           onClick={handleShare}
-          className="inline-flex items-center gap-2 bg-accent text-light px-5 py-2.5 rounded-lg font-medium hover:bg-accent-light transition cursor-pointer"
+          className="inline-flex items-center gap-2 bg-accent text-white px-5 py-2.5 rounded-lg font-medium hover:bg-accent-light transition cursor-pointer"
           aria-label={`Compartir plan ${idea.titulo}`}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

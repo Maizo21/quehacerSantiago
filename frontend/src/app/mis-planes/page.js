@@ -85,7 +85,7 @@ export default function MisPlanesPage() {
         <p className="text-sage text-lg mb-2">Inicia sesión para ver tus planes</p>
         <p className="text-sage-dim text-sm mb-6">Lleva un registro de los planes que has realizado</p>
         <SignInButton mode="modal">
-          <button className="bg-accent text-light px-6 py-2.5 rounded-lg font-medium hover:bg-accent-light transition cursor-pointer">
+          <button className="bg-accent text-white px-6 py-2.5 rounded-lg font-medium hover:bg-accent-light transition cursor-pointer">
             Iniciar sesión
           </button>
         </SignInButton>

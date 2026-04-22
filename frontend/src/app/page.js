@@ -42,8 +42,8 @@ export default function Home() {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
-  // Planes de esta semana (fecha >= hoy)
-  const weekPlans = ideas.filter(i => i.fecha && new Date(i.fecha) >= now)
+  // Próximos eventos (fecha >= hoy, sin importar cuán lejos)
+  const upcomingPlans = ideas.filter(i => i.fecha && new Date(i.fecha) >= now)
     .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
   // Planes por categoría (sin importar fecha)
@@ -96,7 +96,7 @@ export default function Home() {
         <EmptyState />
       ) : (
         <>
-          <SectionSlider title="ESTA SEMANA" ideas={weekPlans} />
+          <SectionSlider title="PRÓXIMOS EVENTOS" ideas={upcomingPlans} />
           <SectionSlider title="OUTDOOR" ideas={outdoorPlans} />
           <SectionSlider title="CULTURAL" ideas={culturalPlans} />
           <SectionSlider title="GRATIS" ideas={freePlans} />
@@ -123,7 +123,7 @@ export default function Home() {
       {isAuthorized && (
         <button
           onClick={() => setShowAddModal(true)}
-          className="fixed bottom-6 right-6 bg-accent text-light w-14 h-14 rounded-full shadow-lg hover:bg-accent-light transition flex items-center justify-center text-2xl cursor-pointer z-30"
+          className="fixed bottom-6 right-6 bg-accent text-white w-14 h-14 rounded-full shadow-lg hover:bg-accent-light transition flex items-center justify-center text-2xl cursor-pointer z-30"
           aria-label="Agregar nuevo plan"
         >
           +
