@@ -3,25 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { AVAILABLE_TAGS } from '@/components/TagSelector';
+import { getTagStyle } from '@/lib/categories';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-const TAG_COLORS = [
-  'bg-sage/15 text-sage border-sage/20',
-  'bg-emerald-900/40 text-emerald-300 border-emerald-700/30',
-  'bg-teal-900/40 text-teal-300 border-teal-700/30',
-  'bg-cyan-900/40 text-cyan-300 border-cyan-700/30',
-  'bg-green-900/40 text-green-300 border-green-700/30',
-  'bg-lime-900/40 text-lime-300 border-lime-700/30',
-];
-
-function getTagColor(tag) {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
-}
 
 export default function RandomPage() {
   const [selectedTags, setSelectedTags] = useState([]);
@@ -198,7 +182,7 @@ export default function RandomPage() {
             <ul className="flex flex-wrap gap-1.5 mb-5 list-none" aria-label="Etiquetas del plan">
               {idea.tags.map(tag => (
                 <li key={tag}>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium border inline-block ${getTagColor(tag)}`}>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium border inline-block ${getTagStyle(tag)}`}>
                     {tag}
                   </span>
                 </li>

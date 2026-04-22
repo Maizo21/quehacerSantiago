@@ -77,20 +77,58 @@ Para cada sugerencia entrega:
 
 Usa SOLO lugares y actividades reales y conocidos en Santiago de Chile. Varía entre gastronomía, naturaleza, cultura, compras y aire libre. No inventes lugares.`;
 
-        const result = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema: SCHEMA,
-                temperature: 0.9
+        let result;
+        try {
+            result = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: SCHEMA,
+                    temperature: 0.8
+                }
+            });
+        } catch (apiErr) {
+            console.error('Gemini API error:', {
+                name: apiErr.name,
+                message: apiErr.message,
+                status: apiErr.status,
+                cause: apiErr.cause
+            });
+            const msg = apiErr.message || '';
+            if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('quota')) {
+                return res.status(503).json({ Error: 'Servicio de IA saturado, intenta en unos segundos' });
             }
-        });
+            if (msg.includes('SAFETY') || msg.includes('blocked')) {
+                return res.status(502).json({ Error: 'La IA bloqueó esta consulta por políticas de contenido' });
+            }
+            return res.status(502).json({ Error: 'La IA no pudo responder, intenta de nuevo' });
+        }
 
-        const parsed = JSON.parse(result.text);
+        const rawText = result?.text;
+        if (!rawText || typeof rawText !== 'string') {
+            const finishReason = result?.candidates?.[0]?.finishReason;
+            console.error('Gemini empty response. finishReason:', finishReason, 'full result:', JSON.stringify(result).slice(0, 500));
+            return res.status(502).json({
+                Error: finishReason === 'SAFETY'
+                    ? 'La IA bloqueó esta consulta por políticas de contenido'
+                    : 'La IA devolvió respuesta vacía, intenta de nuevo'
+            });
+        }
 
-        if (!parsed.sugerencias || !Array.isArray(parsed.sugerencias)) {
-            return res.status(502).json({ Error: 'Respuesta inválida del servicio de IA' });
+        const cleaned = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+
+        let parsed;
+        try {
+            parsed = JSON.parse(cleaned);
+        } catch (parseErr) {
+            console.error('Gemini JSON parse error:', parseErr.message, '— raw text:', rawText.slice(0, 500));
+            return res.status(502).json({ Error: 'La IA devolvió un formato inválido, intenta de nuevo' });
+        }
+
+        if (!parsed.sugerencias || !Array.isArray(parsed.sugerencias) || parsed.sugerencias.length === 0) {
+            console.error('Gemini invalid structure:', JSON.stringify(parsed).slice(0, 500));
+            return res.status(502).json({ Error: 'La IA no generó sugerencias válidas, intenta de nuevo' });
         }
 
         // Log solo en éxito (no penalizamos al usuario por errores del servicio)
@@ -103,8 +141,12 @@ Usa SOLO lugares y actividades reales y conocidos en Santiago de Chile. Varía e
 
         res.status(200).json(parsed);
     } catch (err) {
-        console.error('Error en getSuggestions:', err.message);
-        res.status(500).json({ Error: 'Error al generar sugerencias' });
+        console.error('Error inesperado en getSuggestions:', {
+            name: err.name,
+            message: err.message,
+            stack: err.stack
+        });
+        res.status(500).json({ Error: 'Error interno al generar sugerencias' });
     }
 };
 

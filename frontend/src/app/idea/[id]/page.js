@@ -8,25 +8,9 @@ import { useAuth } from '@clerk/nextjs';
 import EditIdeaModal from '@/components/EditIdeaModal';
 import MarkDoneModal from '@/components/MarkDoneModal';
 import SuggestionsSection from '@/components/SuggestionsSection';
+import { getTagStyle } from '@/lib/categories';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-const TAG_COLORS = [
-  'bg-sage/15 text-sage border-sage/20',
-  'bg-emerald-900/40 text-emerald-300 border-emerald-700/30',
-  'bg-teal-900/40 text-teal-300 border-teal-700/30',
-  'bg-cyan-900/40 text-cyan-300 border-cyan-700/30',
-  'bg-green-900/40 text-green-300 border-green-700/30',
-  'bg-lime-900/40 text-lime-300 border-lime-700/30',
-];
-
-function getTagColor(tag) {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
-}
 
 export default function IdeaDetailPage({ params }) {
   const { id } = use(params);
@@ -244,7 +228,7 @@ export default function IdeaDetailPage({ params }) {
           <li key={tag}>
             <Link
               href={`/?tag=${encodeURIComponent(tag)}`}
-              className={`text-sm px-3.5 py-1.5 rounded-full font-medium border hover:brightness-125 transition inline-block ${getTagColor(tag)}`}
+              className={`text-sm px-3.5 py-1.5 rounded-full font-medium border hover:brightness-125 transition inline-block ${getTagStyle(tag)}`}
             >
               {tag}
             </Link>

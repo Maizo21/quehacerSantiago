@@ -1,20 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useSearch } from '@/context/SearchContext';
 import { useAuthorized } from '@/context/AuthContext';
 import { useAuth } from '@clerk/nextjs';
 import IdeaCard from '@/components/IdeaCard';
 import SectionSlider from '@/components/SectionSlider';
 import AddIdeaModal from '@/components/AddIdeaModal';
+import HomeHero from '@/components/HomeHero';
+import FeaturedPlan from '@/components/FeaturedPlan';
+import { ideaMatchesCategory, getCategoryByKey } from '@/lib/categories';
 import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-export default function Home() {
+function HomeContent() {
   const { searchQuery } = useSearch();
   const { isAuthorized, isAdmin } = useAuthorized();
   const { getToken } = useAuth();
+  const searchParams = useSearchParams();
+  const activeCategory = searchParams.get('category');
   const [ideas, setIdeas] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -42,29 +48,23 @@ export default function Home() {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
-  // Próximos eventos (fecha >= hoy, sin importar cuán lejos)
   const upcomingPlans = ideas.filter(i => i.fecha && new Date(i.fecha) >= now)
     .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-  // Planes por categoría (sin importar fecha)
-  const outdoorPlans = ideas.filter(i =>
-    i.tags.some(t => t.toLowerCase().includes('outdoor') || t.toLowerCase().includes('aire libre'))
-  );
-  const culturalPlans = ideas.filter(i =>
-    i.tags.some(t => t.toLowerCase().includes('cultural') || t.toLowerCase().includes('cultura') || t.toLowerCase().includes('museo') || t.toLowerCase().includes('arte'))
-  );
-  const freePlans = ideas.filter(i =>
-    i.tags.some(t => t.toLowerCase().includes('gratuito') || t.toLowerCase().includes('gratis') || t.toLowerCase().includes('free'))
-  );
+  const outdoorPlans = ideas.filter(i => ideaMatchesCategory(i, 'outdoor'));
+  const culturalPlans = ideas.filter(i => ideaMatchesCategory(i, 'cultura'));
+  const freePlans = ideas.filter(i => ideaMatchesCategory(i, 'gratis'));
 
-  // Sugerencia: max 20 planes
   const suggestionPlans = ideas.slice(0, 20);
 
-  // Planes que ya pasaron
   const pastPlans = ideas.filter(i => i.fecha && new Date(i.fecha) < now)
     .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-  // Si hay búsqueda activa, mostrar resultados en grid
+  const destacados = ideas.filter(i => i.destacado);
+  const featuredPlan = destacados.length > 0
+    ? destacados[Math.floor(Math.random() * destacados.length)]
+    : null;
+
   if (searchQuery) {
     return (
       <>
@@ -88,20 +88,67 @@ export default function Home() {
     );
   }
 
+  if (activeCategory) {
+    const categoryObj = getCategoryByKey(activeCategory);
+    const filtered = ideas.filter(i => ideaMatchesCategory(i, activeCategory));
+    return (
+      <>
+        <HomeHero activeCategory={activeCategory} />
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
+          <h2 className="font-logo text-2xl sm:text-3xl tracking-wide text-sage">
+            {categoryObj ? `${categoryObj.emoji} ${categoryObj.label.toUpperCase()}` : 'CATEGORÍA'}
+            <span className="text-sage-dim text-base ml-2">({filtered.length})</span>
+          </h2>
+          <Link href="/" className="text-sm text-sage-dim hover:text-sage hover:underline transition">
+            Limpiar filtro
+          </Link>
+        </div>
+        {loading ? (
+          <LoadingSkeleton />
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-5xl mb-4" aria-hidden="true">🔍</p>
+            <p className="text-sage text-lg">No hay planes en esta categoría todavía</p>
+            <Link href="/" className="text-sage-dim hover:text-sage hover:underline mt-2 inline-block">Volver a todos</Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            {filtered.map(idea => (
+              <IdeaCard key={idea.id} idea={idea} apiUrl={API_URL} isAdmin={isAdmin} getToken={getToken} onDeleted={fetchIdeas} />
+            ))}
+          </div>
+        )}
+
+        {isAuthorized && <FloatingAddButton onClick={() => setShowAddModal(true)} />}
+        {showAddModal && (
+          <AddIdeaModal
+            onClose={() => setShowAddModal(false)}
+            onCreated={fetchIdeas}
+            apiUrl={API_URL}
+            getToken={getToken}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <>
+      <HomeHero activeCategory={null} />
+
       {loading ? (
         <LoadingSkeleton />
       ) : ideas.length === 0 ? (
         <EmptyState />
       ) : (
         <>
-          <SectionSlider title="EVENTOS CERCANOS" ideas={upcomingPlans} />
+          {featuredPlan && <FeaturedPlan idea={featuredPlan} />}
+
+          <SectionSlider title="PRÓXIMOS EVENTOS" ideas={upcomingPlans} />
           <SectionSlider title="OUTDOOR" ideas={outdoorPlans} />
           <SectionSlider title="CULTURAL" ideas={culturalPlans} />
           <SectionSlider title="GRATIS" ideas={freePlans} />
 
-          {/* Sugerencias — grid limitado a 20 */}
           <section className="mb-10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-logo text-3xl tracking-wide text-sage">SUGERENCIAS</h2>
@@ -120,15 +167,7 @@ export default function Home() {
         </>
       )}
 
-      {isAuthorized && (
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="fixed bottom-6 right-6 bg-accent text-white w-14 h-14 rounded-full shadow-lg hover:bg-accent-light transition flex items-center justify-center text-2xl cursor-pointer z-30"
-          aria-label="Agregar nuevo plan"
-        >
-          +
-        </button>
-      )}
+      {isAuthorized && <FloatingAddButton onClick={() => setShowAddModal(true)} />}
 
       {showAddModal && (
         <AddIdeaModal
@@ -139,6 +178,18 @@ export default function Home() {
         />
       )}
     </>
+  );
+}
+
+function FloatingAddButton({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="fixed bottom-6 right-6 bg-accent text-white w-14 h-14 rounded-full shadow-lg hover:bg-accent-light transition flex items-center justify-center text-2xl cursor-pointer z-30"
+      aria-label="Agregar nuevo plan"
+    >
+      +
+    </button>
   );
 }
 
@@ -165,5 +216,13 @@ function EmptyState() {
       <p className="text-sage text-lg">No se encontraron planes</p>
       <p className="text-sage-dim text-sm mt-1">Prueba con otros filtros o agrega uno nuevo</p>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<LoadingSkeleton />}>
+      <HomeContent />
+    </Suspense>
   );
 }
