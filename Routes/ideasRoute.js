@@ -5,6 +5,7 @@ const path = require('path');
 
 const ideasController = require('../controller/ideasController')
 const misPlanesController = require('../controller/misPlanesController')
+const sugerenciasController = require('../controller/sugerenciasController')
 const { requireAuth, requireAuthorized, requireAdmin } = require('../middleware/auth')
 
 // Multer en memoria para convertir a base64
@@ -21,6 +22,7 @@ const upload = multer({
 
 // Rate limiter para escritura (configurado en index.js)
 const getWriteLimiter = (req) => req.app.get('writeLimiter');
+const getAiLimiter = (req) => req.app.get('aiLimiter');
 
 router.get('/', ideasController.getAllIdeas);
 router.get('/ideas', ideasController.getAllIdeas);
@@ -35,6 +37,10 @@ router.get('/mis-planes', requireAuth, misPlanesController.getMyPlans);
 router.post('/mis-planes', (req, res, next) => getWriteLimiter(req)(req, res, next), requireAuth, upload.single('foto'), misPlanesController.markDone);
 router.get('/mis-planes/check/:ideaId', requireAuth, misPlanesController.checkDone);
 router.delete('/mis-planes/:id', (req, res, next) => getWriteLimiter(req)(req, res, next), requireAuth, misPlanesController.removeDone);
+// Sugerencias de planes cercanos con IA (Gemini)
+router.post('/sugerencias', (req, res, next) => getAiLimiter(req)(req, res, next), requireAuth, sugerenciasController.getSuggestions);
+router.get('/admin/ai-usage', requireAdmin, sugerenciasController.getUsageStats);
+
 router.get('/auth/check', requireAuth, (req, res) => {
     const AUTHORIZED = (process.env.AUTHORIZED_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
     const ADMINS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());

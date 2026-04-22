@@ -51,3 +51,13 @@ model PlanRealizado {
   @@unique([userId, ideaId])
   @@index([userId, fecha])
 }
+
+model AIUsageLog {
+  id        String   @id @default(uuid())
+  userId    String
+  userEmail String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}

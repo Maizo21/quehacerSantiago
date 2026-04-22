@@ -16,6 +16,7 @@
   "dependencies": {
     "@clerk/express": "^2.0.4",
     "@clerk/nextjs": "^7.0.4",
+    "@google/genai": "^1.50.1",
     "@prisma/client": "^6.6.0",
     "dotenv": "^17.3.1",
     "express": "^5.1.0",

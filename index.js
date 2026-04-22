@@ -31,6 +31,16 @@ const writeLimiter = rateLimit({
 });
 app.set('writeLimiter', writeLimiter);
 
+// Rate limiting para IA: max 5 por minuto por IP (protege cuota gratuita de Gemini)
+const aiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { Error: 'Demasiadas solicitudes de IA, intenta de nuevo en un minuto' }
+});
+app.set('aiLimiter', aiLimiter);
+
 // CORS manual
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
     .split(',')

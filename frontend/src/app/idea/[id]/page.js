@@ -7,6 +7,7 @@ import { useAuthorized } from '@/context/AuthContext';
 import { useAuth } from '@clerk/nextjs';
 import EditIdeaModal from '@/components/EditIdeaModal';
 import MarkDoneModal from '@/components/MarkDoneModal';
+import SuggestionsSection from '@/components/SuggestionsSection';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -289,6 +290,13 @@ export default function IdeaDetailPage({ params }) {
           )
         )}
       </div>
+
+      {isSignedIn && doneRecord && (
+        <SuggestionsSection
+          ubicacion={idea.ubicacion}
+          excluir={idea.titulo}
+        />
+      )}
 
       {idea.creadoPor && (
         <footer className="text-sage-dim text-sm mt-8 border-t border-border pt-4">
