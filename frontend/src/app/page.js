@@ -144,7 +144,7 @@ function HomeContent() {
         <>
           {featuredPlan && <FeaturedPlan idea={featuredPlan} />}
 
-          <SectionSlider title="PRÓXIMOS EVENTOS" ideas={upcomingPlans} />
+          <SectionSlider title="EVENTOS CON FECHA" ideas={upcomingPlans} />
           <SectionSlider title="OUTDOOR" ideas={outdoorPlans} />
           <SectionSlider title="CULTURAL" ideas={culturalPlans} />
           <SectionSlider title="GRATIS" ideas={freePlans} />
