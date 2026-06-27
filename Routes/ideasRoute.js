@@ -6,6 +6,7 @@ const path = require('path');
 const ideasController = require('../controller/ideasController')
 const misPlanesController = require('../controller/misPlanesController')
 const sugerenciasController = require('../controller/sugerenciasController')
+const importarController = require('../controller/importarController')
 const { requireAuth, requireAuthorized, requireAdmin } = require('../middleware/auth')
 
 // Multer en memoria para convertir a base64
@@ -40,6 +41,9 @@ router.delete('/mis-planes/:id', (req, res, next) => getWriteLimiter(req)(req, r
 // Sugerencias de planes cercanos con IA (Gemini)
 router.post('/sugerencias', (req, res, next) => getAiLimiter(req)(req, res, next), requireAuth, sugerenciasController.getSuggestions);
 router.get('/admin/ai-usage', requireAdmin, sugerenciasController.getUsageStats);
+
+// Importar plan desde URL externa (OG meta + IA)
+router.post('/importar-url', (req, res, next) => getAiLimiter(req)(req, res, next), requireAuthorized, importarController.importFromUrl);
 
 router.get('/auth/check', requireAuth, (req, res) => {
     const AUTHORIZED = (process.env.AUTHORIZED_EMAILS || '').split(',').map(e => e.trim().toLowerCase());

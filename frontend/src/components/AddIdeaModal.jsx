@@ -3,6 +3,18 @@
 import { useState } from 'react';
 import TagSelector from '@/components/TagSelector';
 
+const AVAILABLE_TAGS = (process.env.NEXT_PUBLIC_AVAILABLE_TAGS || '')
+  .split(',')
+  .map(t => t.trim())
+  .filter(Boolean);
+
+async function dataUriToFile(dataUri, filename = 'imported.jpg') {
+  const res = await fetch(dataUri);
+  const blob = await res.blob();
+  const ext = (blob.type.split('/')[1] || 'jpg').split(';')[0];
+  return new File([blob], `${filename.replace(/\.[^.]+$/, '')}.${ext}`, { type: blob.type });
+}
+
 export default function AddIdeaModal({ onClose, onCreated, apiUrl, getToken }) {
   const [form, setForm] = useState({
     titulo: '',
@@ -17,11 +29,70 @@ export default function AddIdeaModal({ onClose, onCreated, apiUrl, getToken }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const [importUrl, setImportUrl] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [importSource, setImportSource] = useState('');
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setImage(file);
       setPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importUrl.trim()) return;
+    setImporting(true);
+    setImportError('');
+    setImportSource('');
+    try {
+      const token = await getToken();
+      const res = await fetch(`${apiUrl}/importar-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ url: importUrl.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setImportError(data.Error || 'Error al importar la URL');
+        return;
+      }
+
+      setForm(prev => ({
+        ...prev,
+        titulo: data.titulo || prev.titulo,
+        descripcion: data.descripcion || prev.descripcion,
+        ubicacion: data.ubicacion || prev.ubicacion
+      }));
+
+      if (Array.isArray(data.tags) && data.tags.length > 0) {
+        const matched = data.tags
+          .map(t => t.toLowerCase().trim())
+          .map(t => AVAILABLE_TAGS.find(at => at.toLowerCase() === t))
+          .filter(Boolean);
+        if (matched.length > 0) {
+          setSelectedTags(prev => Array.from(new Set([...prev, ...matched])));
+        }
+      }
+
+      if (data.imagenBase64) {
+        try {
+          const file = await dataUriToFile(data.imagenBase64, 'imported');
+          setImage(file);
+          setPreview(data.imagenBase64);
+        } catch (_) {}
+      }
+
+      setImportSource(data.source || '');
+    } catch {
+      setImportError('Error de conexión con el servidor');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -83,6 +154,44 @@ export default function AddIdeaModal({ onClose, onCreated, apiUrl, getToken }) {
             {error}
           </div>
         )}
+
+        <details className="bg-card/50 border border-sage/20 rounded-lg mb-5 group">
+          <summary className="px-3 py-2.5 cursor-pointer text-sm text-sage hover:text-sage/80 font-medium flex items-center gap-2 list-none">
+            <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            Importar desde una URL (auto-rellena el formulario)
+          </summary>
+          <div className="p-3 pt-2 border-t border-sage/15 space-y-2">
+            <p className="text-xs text-sage-dim">
+              Pega una URL de blog, artículo o post sobre un plan en Santiago. La IA extrae título, ubicación, descripción e imagen.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={importUrl}
+                onChange={e => setImportUrl(e.target.value)}
+                placeholder="https://santiagoadicto.com/..."
+                className="flex-1 bg-card border border-border rounded-lg px-3 py-2 text-sm text-light placeholder-sage-dim/50 focus:outline-none focus:ring-2 focus:ring-sage/50"
+                disabled={importing}
+              />
+              <button
+                type="button"
+                onClick={handleImport}
+                disabled={importing || !importUrl.trim()}
+                className="bg-sage/15 text-sage border border-sage/30 px-3 py-2 rounded-lg text-sm font-medium hover:bg-sage/25 disabled:opacity-50 transition cursor-pointer whitespace-nowrap"
+              >
+                {importing ? 'Importando...' : 'Importar'}
+              </button>
+            </div>
+            {importError && (
+              <p role="alert" className="text-xs text-red-400">{importError}</p>
+            )}
+            {importSource && !importError && (
+              <p className="text-xs text-sage-dim">✓ Importado desde <strong>{importSource}</strong>. Revisa y edita los campos antes de guardar.</p>
+            )}
+          </div>
+        </details>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

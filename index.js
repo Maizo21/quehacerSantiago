@@ -6,6 +6,10 @@ const app = express();
 const PORT = Number(process.env.PORT) || 8000;
 const ideasRoute = require('./Routes/ideasRoute');
 
+// Confiar en el primer proxy (Railway pone un load balancer delante).
+// Necesario para que express-rate-limit identifique la IP real desde X-Forwarded-For.
+app.set('trust proxy', 1);
+
 // Headers de seguridad
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }
