@@ -9,11 +9,17 @@ const ai = process.env.GEMINI_API_KEY
     ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
     : null;
 
+const BLOCKED_EVENT_KEYWORDS = Array.from(new Set([
+    'nexus',
+    ...(process.env.BLOCKED_EVENT_KEYWORDS || '').split(',')
+])).map(value => normalize(value)).filter(Boolean);
+const MAX_SAME_EVENT_SUGGESTIONS = Math.max(1, Math.min(5, Number(process.env.MAX_SAME_EVENT_SUGGESTIONS) || 2));
+
 const SOURCES = [
     { id: 'biblioteca-santiago', nombre: 'Biblioteca de Santiago', tipo: 'WEB', url: 'https://www.bibliotecasantiago.gob.cl/cartelera/proximos' },
     { id: 'visit-santiago', nombre: 'Visit Santiago', tipo: 'WEB', url: 'https://visitsantiago.travel/panoramas/' },
     { id: 'cclm', nombre: 'Centro Cultural La Moneda', tipo: 'WEB', url: 'https://www.cclm.cl/' },
-    { id: 'gam', nombre: 'GAM', tipo: 'WEB', url: 'https://gam.cl/es/' },
+    { id: 'gam', nombre: 'GAM', tipo: 'WEB', url: 'https://gam.cl/es/calendario/' },
     { id: 'la-tercera-finde', nombre: 'La Tercera Finde', tipo: 'RSS', url: 'https://www.latercera.com/arcio/rss/' },
     { id: 'la-tercera-stories', nombre: 'La Tercera Stories', tipo: 'WEB', url: 'https://stories.latercera.com/' },
     { id: 'mesa-1', nombre: 'Mesa 1', tipo: 'WEB', url: 'https://www.mesa1.cl/pages/events' },
@@ -25,8 +31,7 @@ const SOURCES = [
     { id: 'instagram-enroque', nombre: 'Instagram · Enroque', tipo: 'INSTAGRAM', url: 'https://www.instagram.com/enroque_juegosdemesa/' },
     { id: 'instagram-demente', nombre: 'Instagram · Demente Games', tipo: 'INSTAGRAM', url: 'https://www.instagram.com/dementegames_cl/' },
     { id: 'entrejuegos', nombre: 'EntreJuegos', tipo: 'WEB', url: 'https://www.entrejuegos.cl/eventos' },
-    { id: 'casa-de-juegos', nombre: 'Casa de Juegos', tipo: 'WEB', url: 'https://www.casadejuegos.cl/blogs/noticias' },
-    { id: 'freljord', nombre: 'Freljord - tiendas y partidas', tipo: 'WEB', url: 'https://freljord.cl/tiendas' }
+    { id: 'casa-de-juegos', nombre: 'Casa de Juegos', tipo: 'WEB', url: 'https://www.casadejuegos.cl/blogs/noticias' }
 ];
 
 const AI_SCHEMA = {
@@ -70,6 +75,48 @@ function normalize(value) {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, ' ')
         .trim();
+}
+
+function eventFamilyKey(value) {
+    const withoutVenue = clean(value, 300)
+        .replace(/\s+(?:en|@)\s+[^|]+$/i, '')
+        .replace(/\s*[|]\s*[^|]+$/i, '')
+        .trim();
+    return normalize(withoutVenue);
+}
+
+function isBlockedEvent(event) {
+    const haystack = normalize(`${event?.titulo || event?.title || ''} ${event?.descripcion || event?.description || ''}`);
+    return BLOCKED_EVENT_KEYWORDS.some(keyword => haystack.includes(keyword));
+}
+
+function isRetryableAiError(error) {
+    const message = String(error?.message || error || '').toLowerCase();
+    return /\b429\b|\b503\b|unavailable|high demand|resource_exhausted|temporar/.test(message);
+}
+
+function friendlySourceError(error) {
+    const message = String(error?.message || error || 'Error desconocido');
+    if (isRetryableAiError(error)) return 'Gemini está temporalmente saturado. Intenta nuevamente en unos minutos.';
+    if (error?.name === 'AbortError') return 'La fuente tardó más de 12 segundos en responder.';
+    if (/fetch failed/i.test(message)) return 'No se pudo conectar con la fuente.';
+    const http = message.match(/HTTP\s+(\d{3})/i);
+    if (http) return `La fuente respondió con error ${http[1]}.`;
+    return clean(message, 240) || 'Error desconocido';
+}
+
+async function generateWithRetry(request, maxAttempts = 3) {
+    let lastError;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+            return await ai.models.generateContent(request);
+        } catch (error) {
+            lastError = error;
+            if (!isRetryableAiError(error) || attempt === maxAttempts) throw error;
+            await new Promise(resolve => setTimeout(resolve, 750 * (2 ** (attempt - 1))));
+        }
+    }
+    throw lastError;
 }
 
 function safeExternalUrl(value, fallback) {
@@ -217,12 +264,14 @@ Reglas:
 - url debe ser el enlace más directo incluido en el contenido; si no hay uno específico usa ${source.url}.
 - tags: 2 a 5 de: juegos, cartas, rol, cultural, arte, libros, musica, outdoor, gratis, familiar, pareja, amigos, gastronomia, deporte, noche.
 - confianza: entero 0-100. Menos de 65 si algún dato importante es ambiguo.
+- No incluyas eventos relacionados con: ${BLOCKED_EVENT_KEYWORDS.join(', ')}.
+- Si el mismo juego o evento aparece en varios locales, entrega como máximo ${MAX_SAME_EVENT_SUGGESTIONS} alternativas.
 - Máximo 20 eventos.
 
 CONTENIDO:
 ${text}`;
 
-    const result = await ai.models.generateContent({
+    const result = await generateWithRetry({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -247,12 +296,13 @@ ${text}`;
         tags: Array.isArray(item.tags) ? item.tags.map(tag => clean(tag, 30).toLowerCase()).filter(Boolean).slice(0, 5) : [],
         confianza: Math.max(0, Math.min(100, Math.round(Number(item.confianza) || 50))),
         advertencias: clean(item.advertencias, 500) || null
-    })).filter(item => item.titulo && item.fecha && item.fecha <= maxDate && (item.fechaFin || item.fecha) >= todayAsUtcDate());
+    })).filter(item => item.titulo && !isBlockedEvent(item) && item.fecha && item.fecha <= maxDate && (item.fechaFin || item.fecha) >= todayAsUtcDate());
 }
 
 async function persistEvents(events, source) {
     let created = 0;
     for (const event of events) {
+        if (isBlockedEvent(event)) continue;
         const key = fingerprint(event);
         const existingIdea = await prisma.idea.findFirst({ where: { externalKey: key }, select: { id: true } });
         if (existingIdea) continue;
@@ -304,16 +354,25 @@ async function runSource(source) {
         const html = await fetchText(source.url);
         const maxDate = addUtcDays(todayAsUtcDate(), 45);
         const structured = extractJsonLdEvents(html, source, maxDate);
-        const aiEvents = await extractWithAi(html, source, maxDate);
+        let aiEvents = [];
+        let aiError = null;
+        try {
+            aiEvents = await extractWithAi(html, source, maxDate);
+        } catch (error) {
+            aiError = error;
+        }
         const all = [...structured, ...aiEvents];
+        if (aiError && all.length === 0) throw aiError;
         const created = await persistEvents(all, source);
+        const status = aiError ? 'PARCIAL' : 'OK';
+        const warning = aiError ? friendlySourceError(aiError) : null;
         await prisma.discoverySource.update({
             where: { id: source.id },
-            data: { ultimoEstado: 'OK', ultimoError: null }
+            data: { ultimoEstado: status, ultimoError: warning }
         });
-        return { sourceId: source.id, nombre: source.nombre, encontrados: all.length, nuevos: created, estado: 'OK' };
+        return { sourceId: source.id, nombre: source.nombre, encontrados: all.length, nuevos: created, estado: status, error: warning };
     } catch (error) {
-        const message = clean(error.message, 400) || 'Error desconocido';
+        const message = friendlySourceError(error);
         await prisma.discoverySource.update({
             where: { id: source.id },
             data: { ultimoEstado: 'ERROR', ultimoError: message }
@@ -322,4 +381,12 @@ async function runSource(source) {
     }
 }
 
-module.exports = { SOURCES, runSource };
+module.exports = {
+    SOURCES,
+    BLOCKED_EVENT_KEYWORDS,
+    MAX_SAME_EVENT_SUGGESTIONS,
+    eventFamilyKey,
+    isBlockedEvent,
+    friendlySourceError,
+    runSource
+};

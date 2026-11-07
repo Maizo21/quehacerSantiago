@@ -113,7 +113,12 @@ export default function AdminPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.Error || 'No se pudo ejecutar la búsqueda');
       const failures = (data.resultados || []).filter(item => item.estado === 'ERROR').length;
-      setMessage(`${data.nuevos || 0} sugerencias nuevas. ${failures ? `${failures} fuentes no respondieron.` : 'Todas las fuentes respondieron.'}`);
+      const partials = (data.resultados || []).filter(item => item.estado === 'PARCIAL').length;
+      const statusSummary = [
+        failures ? `${failures} fuentes fallaron` : '',
+        partials ? `${partials} respondieron parcialmente` : ''
+      ].filter(Boolean).join(' · ');
+      setMessage(`${data.nuevos || 0} sugerencias nuevas. ${statusSummary || 'Todas las fuentes respondieron.'}`);
       await Promise.all([loadSuggestions(), loadSources()]);
     } catch (err) {
       setError(err.message);
@@ -195,13 +200,14 @@ export default function AdminPage() {
                   />
                   <span className="min-w-0">
                     <span className="block text-sm text-light">{source.nombre}</span>
-                    <span className={`text-xs ${source.ultimoEstado === 'ERROR' ? 'text-red-400' : 'text-sage-dim'}`}>
+                    <span className={`text-xs ${source.ultimoEstado === 'ERROR' ? 'text-red-400' : source.ultimoEstado === 'PARCIAL' ? 'text-amber-300' : 'text-sage-dim'}`}>
                       {source.ultimoEstado || 'Sin consultar'}{source.ultimoError ? ` · ${source.ultimoError}` : ''}
                     </span>
                   </span>
                 </label>
               ))}
             </div>
+            <p className="text-xs text-sage-dim mt-4">Se muestran como máximo 2 alternativas del mismo evento. Nexus está excluido de tus sugerencias.</p>
             <p className="text-xs text-sage-dim mt-4">Para publicaciones de Instagram que no sean accesibles automáticamente, usa “Importar desde una URL” al agregar un plan.</p>
           </section>
 

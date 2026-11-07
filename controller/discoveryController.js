@@ -1,9 +1,17 @@
 const sanitizeHtml = require('sanitize-html');
 const { prisma } = require('../Models/ideasModels');
-const { SOURCES, runSource } = require('../services/discoverySources');
+const {
+    SOURCES,
+    MAX_SAME_EVENT_SUGGESTIONS,
+    eventFamilyKey,
+    friendlySourceError,
+    isBlockedEvent,
+    runSource
+} = require('../services/discoverySources');
 const { todayAsUtcDate } = require('../lib/dateUtils');
 
 const clean = value => sanitizeHtml(String(value || ''), { allowedTags: [], allowedAttributes: {} }).trim();
+const DISABLED_SUGGESTION_SOURCES = new Set(['freljord']);
 
 function serializeSuggestion(item) {
     return {
@@ -16,7 +24,14 @@ function serializeSuggestion(item) {
 exports.getSources = async (req, res) => {
     const records = await prisma.discoverySource.findMany();
     const byId = new Map(records.map(record => [record.id, record]));
-    res.json(SOURCES.map(source => ({ ...source, ...(byId.get(source.id) || {}) })));
+    res.json(SOURCES.map(source => {
+        const record = byId.get(source.id) || {};
+        return {
+            ...record,
+            ...source,
+            ultimoError: record.ultimoError ? friendlySourceError({ message: record.ultimoError }) : null
+        };
+    }));
 };
 
 exports.runDiscovery = async (req, res) => {
@@ -42,10 +57,20 @@ exports.getSuggestions = async (req, res) => {
     const estado = clean(req.query.estado || 'PENDIENTE').toUpperCase();
     const where = { estado };
     if (estado === 'PENDIENTE') where.fecha = { gte: todayAsUtcDate() };
-    const suggestions = await prisma.planSuggestion.findMany({
+    const candidates = await prisma.planSuggestion.findMany({
         where,
         orderBy: [{ fecha: 'asc' }, { confianza: 'desc' }],
-        take: 300
+        take: 500
+    });
+    const familyCounts = new Map();
+    const suggestions = candidates.filter(item => {
+        if (DISABLED_SUGGESTION_SOURCES.has(item.fuenteId)) return false;
+        if (isBlockedEvent(item)) return false;
+        const family = eventFamilyKey(item.titulo);
+        const count = familyCounts.get(family) || 0;
+        if (count >= MAX_SAME_EVENT_SUGGESTIONS) return false;
+        familyCounts.set(family, count + 1);
+        return true;
     });
     res.json({ suggestions: suggestions.map(serializeSuggestion), total: suggestions.length });
 };
