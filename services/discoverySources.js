@@ -254,7 +254,7 @@ async function persistEvents(events, source) {
     let created = 0;
     for (const event of events) {
         const key = fingerprint(event);
-        const existingIdea = await prisma.idea.findUnique({ where: { externalKey: key }, select: { id: true } });
+        const existingIdea = await prisma.idea.findFirst({ where: { externalKey: key }, select: { id: true } });
         if (existingIdea) continue;
         const existing = await prisma.planSuggestion.findUnique({ where: { fingerprint: key }, select: { id: true } });
         await prisma.planSuggestion.upsert({

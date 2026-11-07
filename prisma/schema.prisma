@@ -19,7 +19,7 @@ model Idea {
   precioEstado String          @default("NO_INFORMADO")
   fuenteNombre String?
   fuenteUrl    String?
-  externalKey  String?         @unique
+  externalKey  String?
   destacado    Boolean         @default(false)
   creadoPor    String?
   creadoEl     DateTime        @default(now())
@@ -29,6 +29,7 @@ model Idea {
 
   @@index([fecha])
   @@index([fechaFin])
+  @@index([externalKey])
 }
 
 model Tag {
