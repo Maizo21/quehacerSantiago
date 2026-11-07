@@ -9,6 +9,7 @@ import EditIdeaModal from '@/components/EditIdeaModal';
 import MarkDoneModal from '@/components/MarkDoneModal';
 import SuggestionsSection from '@/components/SuggestionsSection';
 import { getTagStyle } from '@/lib/categories';
+import { formatEventRange } from '@/lib/eventDates';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -200,12 +201,7 @@ export default function IdeaDetailPage({ params }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <time dateTime={idea.fecha}>
-              {new Date(idea.fecha).toLocaleDateString('es-CL', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
+              {formatEventRange(idea.fecha, idea.fechaFin)}
             </time>
           </div>
         )}

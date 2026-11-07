@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
+import { formatEventRange } from '@/lib/eventDates';
 
 const GRADIENTS = [
   'from-emerald-800 to-teal-900',
@@ -89,11 +90,7 @@ export default function SectionSlider({ title, ideas, isPast = false }) {
 
               {idea.fecha && (
                 <time dateTime={idea.fecha} className="absolute top-3 left-3 bg-dark/70 text-sage text-xs font-medium px-2.5 py-1 rounded-full backdrop-blur-sm border border-sage/20">
-                  {new Date(idea.fecha).toLocaleDateString('es-CL', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short'
-                  })}
+                  {formatEventRange(idea.fecha, idea.fechaFin)}
                 </time>
               )}
 

@@ -2,13 +2,17 @@
 
 import { useState } from 'react';
 import TagSelector from '@/components/TagSelector';
+import { dateKey } from '@/lib/eventDates';
 
 export default function EditIdeaModal({ idea, onClose, onUpdated, apiUrl, getToken }) {
   const [form, setForm] = useState({
     titulo: idea.titulo,
     descripcion: idea.descripcion || '',
     ubicacion: idea.ubicacion,
-    fecha: idea.fecha ? idea.fecha.split('T')[0] : '',
+    fecha: dateKey(idea.fecha),
+    fechaFin: dateKey(idea.fechaFin),
+    precio: String(idea.precio ?? 0),
+    precioEstado: idea.precioEstado || 'NO_INFORMADO',
     destacado: idea.destacado || false
   });
   const [selectedTags, setSelectedTags] = useState(idea.tags || []);
@@ -37,7 +41,10 @@ export default function EditIdeaModal({ idea, onClose, onUpdated, apiUrl, getTok
     formData.append('descripcion', form.descripcion);
     formData.append('ubicacion', form.ubicacion);
     formData.append('tags', selectedTags.join(','));
-    if (form.fecha) formData.append('fecha', form.fecha);
+    formData.append('fecha', form.fecha);
+    formData.append('fechaFin', form.fechaFin);
+    formData.append('precio', form.precio || '0');
+    formData.append('precioEstado', form.precioEstado);
     formData.append('destacado', form.destacado);
     if (image) formData.append('imagen', image);
 
@@ -155,6 +162,50 @@ export default function EditIdeaModal({ idea, onClose, onUpdated, apiUrl, getTok
               onChange={e => setForm({ ...form, fecha: e.target.value })}
               className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-light focus:outline-none focus:ring-2 focus:ring-sage/50"
             />
+          </div>
+
+          <div>
+            <label htmlFor="edit-fecha-fin" className="block text-sm font-medium text-sage-dim mb-1">
+              Fecha final <span className="font-normal text-sage-dim/50">(si dura varios días)</span>
+            </label>
+            <input
+              id="edit-fecha-fin"
+              type="date"
+              min={form.fecha || undefined}
+              value={form.fechaFin}
+              onChange={e => setForm({ ...form, fechaFin: e.target.value })}
+              className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-light focus:outline-none focus:ring-2 focus:ring-sage/50"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="edit-precio-estado" className="block text-sm font-medium text-sage-dim mb-1">Precio</label>
+              <select
+                id="edit-precio-estado"
+                value={form.precioEstado}
+                onChange={e => setForm({ ...form, precioEstado: e.target.value, precio: e.target.value === 'PAGADO' ? form.precio : '0' })}
+                className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-light focus:outline-none focus:ring-2 focus:ring-sage/50"
+              >
+                <option value="NO_INFORMADO">No informado</option>
+                <option value="GRATIS">Gratis</option>
+                <option value="PAGADO">Pagado</option>
+              </select>
+            </div>
+            {form.precioEstado === 'PAGADO' && (
+              <div>
+                <label htmlFor="edit-precio" className="block text-sm font-medium text-sage-dim mb-1">Valor CLP</label>
+                <input
+                  id="edit-precio"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.precio}
+                  onChange={e => setForm({ ...form, precio: e.target.value })}
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-light focus:outline-none focus:ring-2 focus:ring-sage/50"
+                />
+              </div>
+            )}
           </div>
 
           <div>

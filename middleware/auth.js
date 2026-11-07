@@ -32,6 +32,7 @@ const requireAuth = async (req, res, next) => {
         req.userId = userId;
         req.userEmail = email;
         req.userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || email;
+        req.isAdmin = ADMIN_EMAILS.includes(email);
 
         next();
     } catch (err) {

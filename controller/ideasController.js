@@ -1,6 +1,7 @@
 const sanitizeHtml = require('sanitize-html');
 const ideasModels = require('../Models/ideasModels');
 const { validateLength, prisma } = ideasModels;
+const { activeIdeaWhere, expiredIdeaWhere, parseDateOnly, todayAsUtcDate } = require('../lib/dateUtils');
 
 // Sanitizar texto — eliminar todo HTML
 const clean = (str) => str ? sanitizeHtml(str, { allowedTags: [], allowedAttributes: {} }).trim() : str;
@@ -16,8 +17,8 @@ exports.getAllIdeas = async (req, res) => {
 
     // Buscar por ID (tu lógica original)
     if(id){
-        const ideaFound = await prisma.idea.findUnique({
-            where: { id },
+        const ideaFound = await prisma.idea.findFirst({
+            where: { id, ...activeIdeaWhere() },
             include: { tags: { include: { tag: true } } }
         });
 
@@ -31,25 +32,27 @@ exports.getAllIdeas = async (req, res) => {
     }
 
     // Filtros de búsqueda y etiquetas
-    const where = {};
+    const filters = [activeIdeaWhere()];
 
     if(search){
         const s = clean(search);
-        where.OR = [
+        filters.push({ OR: [
             { titulo: { contains: s } },
             { descripcion: { contains: s } },
             { ubicacion: { contains: s } }
-        ];
+        ] });
     }
 
     if(tag){
         const tags = Array.isArray(tag) ? tag : [tag];
-        where.tags = {
+        filters.push({ tags: {
             some: {
                 tag: { nombre: { in: tags } }
             }
-        };
+        } });
     }
+
+    const where = { AND: filters };
 
     const ideas = await prisma.idea.findMany({
         where,
@@ -69,7 +72,7 @@ exports.createIdea = async (req, res) => {
     const titulo = clean(req.body.titulo);
     const descripcion = clean(req.body.descripcion);
     const ubicacion = clean(req.body.ubicacion);
-    const { tags, fecha, destacado } = req.body;
+    const { tags, fecha, fechaFin, destacado, precio, precioEstado, fuenteNombre, fuenteUrl } = req.body;
 
     if(!titulo || !ubicacion || !tags){
         return res.status(400).json({Error: 'Faltan datos'})
@@ -93,8 +96,14 @@ exports.createIdea = async (req, res) => {
         return res.status(400).json({Error: 'Cada etiqueta debe tener máximo 50 caracteres'})
     }
 
-    if(fecha && isNaN(new Date(fecha).getTime())){
+    const parsedFecha = fecha ? parseDateOnly(fecha) : null;
+    const parsedFechaFin = fechaFin ? parseDateOnly(fechaFin) : null;
+    if(fecha && !parsedFecha){
         return res.status(400).json({Error: 'Fecha inválida'})
+    }
+    if(fechaFin && !parsedFechaFin) return res.status(400).json({Error: 'Fecha final invalida'});
+    if(parsedFecha && parsedFechaFin && parsedFechaFin < parsedFecha){
+        return res.status(400).json({Error: 'La fecha final no puede ser anterior a la fecha inicial'});
     }
 
     const tagRecords = await Promise.all(
@@ -113,7 +122,12 @@ exports.createIdea = async (req, res) => {
             descripcion: descripcion || null,
             ubicacion,
             imagenUrl: req.file ? fileToBase64(req.file) : null,
-            fecha: fecha ? new Date(fecha) : null,
+            fecha: parsedFecha,
+            fechaFin: parsedFechaFin,
+            precio: Math.max(0, parseInt(precio, 10) || 0),
+            precioEstado: ['GRATIS', 'PAGADO', 'NO_INFORMADO'].includes(precioEstado) ? precioEstado : 'NO_INFORMADO',
+            fuenteNombre: clean(fuenteNombre) || null,
+            fuenteUrl: clean(fuenteUrl) || null,
             destacado: destacado === 'true',
             creadoPor: req.userName || null,
             tags: {
@@ -143,7 +157,7 @@ exports.deleteIdea = async (req, res) => {
 
 exports.updateIdea = async (req, res) => {
     const id = req.query.id;
-    const { tags, fecha, destacado } = req.body;
+    const { tags, fecha, fechaFin, destacado, precio, precioEstado, fuenteNombre, fuenteUrl } = req.body;
     const titulo = clean(req.body.titulo);
     const descripcion = clean(req.body.descripcion);
     const ubicacion = clean(req.body.ubicacion);
@@ -151,6 +165,10 @@ exports.updateIdea = async (req, res) => {
     const existing = await prisma.idea.findUnique({ where: { id } });
     if(!existing){
         return res.status(404).json({Error: 'Idea no encontrada'});
+    }
+    const existingEndDate = existing.fechaFin || existing.fecha;
+    if(existingEndDate && existingEndDate < todayAsUtcDate() && !req.isAdmin){
+        return res.status(403).json({Error: 'Solo un administrador puede editar planes vencidos'});
     }
 
     if(titulo && !validateLength(titulo, 1, 200)){
@@ -168,11 +186,26 @@ exports.updateIdea = async (req, res) => {
     if(descripcion !== undefined) data.descripcion = descripcion || null;
     if(ubicacion) data.ubicacion = ubicacion;
     if(fecha !== undefined){
-        if(fecha && isNaN(new Date(fecha).getTime())){
+        const parsed = fecha ? parseDateOnly(fecha) : null;
+        if(fecha && !parsed){
             return res.status(400).json({Error: 'Fecha inválida'})
         }
-        data.fecha = fecha ? new Date(fecha) : null;
+        data.fecha = parsed;
     }
+    if(fechaFin !== undefined){
+        const parsed = fechaFin ? parseDateOnly(fechaFin) : null;
+        if(fechaFin && !parsed) return res.status(400).json({Error: 'Fecha final invalida'});
+        data.fechaFin = parsed;
+    }
+    const effectiveStart = data.fecha !== undefined ? data.fecha : existing.fecha;
+    const effectiveEnd = data.fechaFin !== undefined ? data.fechaFin : existing.fechaFin;
+    if(effectiveStart && effectiveEnd && effectiveEnd < effectiveStart){
+        return res.status(400).json({Error: 'La fecha final no puede ser anterior a la fecha inicial'});
+    }
+    if(precio !== undefined) data.precio = Math.max(0, parseInt(precio, 10) || 0);
+    if(precioEstado !== undefined && ['GRATIS', 'PAGADO', 'NO_INFORMADO'].includes(precioEstado)) data.precioEstado = precioEstado;
+    if(fuenteNombre !== undefined) data.fuenteNombre = clean(fuenteNombre) || null;
+    if(fuenteUrl !== undefined) data.fuenteUrl = clean(fuenteUrl) || null;
     if(destacado !== undefined) data.destacado = destacado === 'true';
     if(req.file) data.imagenUrl = fileToBase64(req.file);
 
@@ -215,16 +248,17 @@ exports.updateIdea = async (req, res) => {
 
 exports.getRandomIdea = async (req, res) => {
     const { tag } = req.query;
-    const where = {};
+    const filters = [activeIdeaWhere()];
 
     if(tag){
         const tags = Array.isArray(tag) ? tag : [tag];
-        where.tags = {
+        filters.push({ tags: {
             some: {
                 tag: { nombre: { in: tags } }
             }
-        };
+        } });
     }
+    const where = { AND: filters };
 
     const count = await prisma.idea.count({ where });
     if(count === 0){
@@ -248,12 +282,37 @@ exports.getRandomIdea = async (req, res) => {
 exports.getAllTags = async (req, res) => {
     const tags = await prisma.tag.findMany({
         orderBy: { nombre: 'asc' },
-        include: { _count: { select: { ideas: true } } }
+        include: {
+            ideas: {
+                where: { idea: { is: activeIdeaWhere() } },
+                select: { ideaId: true }
+            }
+        }
     });
 
     res.json(tags.map(t => ({
         id: t.id,
         nombre: t.nombre,
-        count: t._count.ideas
+        count: t.ideas.length
     })));
 }
+
+exports.getAdminIdeas = async (req, res) => {
+    const status = String(req.query.status || 'expired').toLowerCase();
+    const today = todayAsUtcDate();
+    let where;
+    if(status === 'expired') where = expiredIdeaWhere(today);
+    else if(status === 'undated') where = { fecha: null };
+    else if(status === 'active') where = activeIdeaWhere(today);
+    else return res.status(400).json({ Error: 'Estado invalido' });
+
+    const ideas = await prisma.idea.findMany({
+        where,
+        include: { tags: { include: { tag: true } } },
+        orderBy: [{ fecha: 'desc' }, { creadoEl: 'desc' }]
+    });
+    res.json({
+        ideas: ideas.map(idea => ({ ...idea, tags: idea.tags.map(item => item.tag.nombre) })),
+        total: ideas.length
+    });
+};

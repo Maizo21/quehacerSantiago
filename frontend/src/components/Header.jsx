@@ -5,6 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useState, useEffect, useRef } from 'react';
 import { SignInButton, UserButton, useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
+import { useAuthorized } from '@/context/AuthContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -13,6 +14,7 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
   const [inputValue, setInputValue] = useState(searchQuery);
   const { isSignedIn } = useAuth();
+  const { isAdmin } = useAuthorized();
   const [tags, setTags] = useState([]);
   const [showCategories, setShowCategories] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -80,6 +82,11 @@ export default function Header() {
           {isSignedIn && (
             <Link href="/mis-planes" className="text-light/80 hover:text-light text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-light/10 transition">
               Mis Planes
+            </Link>
+          )}
+          {isAdmin && (
+            <Link href="/admin" className="text-light/80 hover:text-light text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-light/10 transition">
+              Admin
             </Link>
           )}
           <div className="relative" ref={dropdownRef}>
@@ -184,6 +191,15 @@ export default function Header() {
                   onClick={() => setShowMobileMenu(false)}
                 >
                   Mis Planes
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="block px-4 py-2.5 text-sm text-sage-dim hover:text-light hover:bg-surface transition"
+                  onClick={() => setShowMobileMenu(false)}
+                >
+                  Administración
                 </Link>
               )}
               <div className="border-t border-border my-1" />

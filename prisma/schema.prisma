@@ -8,17 +8,27 @@ datasource db {
 }
 
 model Idea {
-  id          String    @id @default(uuid())
-  titulo      String
-  descripcion String?
-  ubicacion   String
-  imagenUrl   String?
-  fecha       DateTime?
-  destacado   Boolean   @default(false)
-  creadoPor   String?
-  creadoEl    DateTime  @default(now())
-  tags        IdeaTag[]
-  realizados  PlanRealizado[]
+  id           String          @id @default(uuid())
+  titulo       String
+  descripcion  String?
+  ubicacion    String
+  imagenUrl    String?
+  fecha        DateTime?
+  fechaFin     DateTime?
+  precio       Int             @default(0)
+  precioEstado String          @default("NO_INFORMADO")
+  fuenteNombre String?
+  fuenteUrl    String?
+  externalKey  String?         @unique
+  destacado    Boolean         @default(false)
+  creadoPor    String?
+  creadoEl     DateTime        @default(now())
+  tags         IdeaTag[]
+  realizados   PlanRealizado[]
+  sugerencia   PlanSuggestion?
+
+  @@index([fecha])
+  @@index([fechaFin])
 }
 
 model Tag {
@@ -60,4 +70,44 @@ model AIUsageLog {
 
   @@index([userId, createdAt])
   @@index([createdAt])
+}
+
+model DiscoverySource {
+  id              String    @id
+  nombre          String
+  url             String
+  tipo            String
+  habilitada      Boolean   @default(true)
+  ultimaEjecucion DateTime?
+  ultimoEstado    String?
+  ultimoError     String?
+  creadoEl        DateTime  @default(now())
+  actualizadoEl   DateTime  @updatedAt
+}
+
+model PlanSuggestion {
+  id            String    @id @default(uuid())
+  fingerprint   String    @unique
+  titulo        String
+  descripcion   String?
+  ubicacion     String
+  fecha         DateTime
+  fechaFin      DateTime?
+  precio        Int       @default(0)
+  precioEstado  String    @default("NO_INFORMADO")
+  imagenUrl     String?
+  fuenteId      String
+  fuenteNombre  String
+  fuenteUrl     String
+  tags          String[]  @default([])
+  estado        String    @default("PENDIENTE")
+  confianza     Int       @default(50)
+  advertencias  String?
+  descubiertoEl DateTime  @default(now())
+  actualizadoEl DateTime  @updatedAt
+  ideaId        String?   @unique
+  idea          Idea?     @relation(fields: [ideaId], references: [id], onDelete: SetNull)
+
+  @@index([estado, fecha])
+  @@index([fuenteId])
 }

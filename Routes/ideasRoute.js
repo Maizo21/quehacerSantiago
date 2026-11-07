@@ -7,6 +7,7 @@ const ideasController = require('../controller/ideasController')
 const misPlanesController = require('../controller/misPlanesController')
 const sugerenciasController = require('../controller/sugerenciasController')
 const importarController = require('../controller/importarController')
+const discoveryController = require('../controller/discoveryController')
 const { requireAuth, requireAuthorized, requireAdmin } = require('../middleware/auth')
 
 // Multer en memoria para convertir a base64
@@ -41,6 +42,12 @@ router.delete('/mis-planes/:id', (req, res, next) => getWriteLimiter(req)(req, r
 // Sugerencias de planes cercanos con IA (Gemini)
 router.post('/sugerencias', (req, res, next) => getAiLimiter(req)(req, res, next), requireAuth, sugerenciasController.getSuggestions);
 router.get('/admin/ai-usage', requireAdmin, sugerenciasController.getUsageStats);
+router.get('/admin/ideas', requireAdmin, ideasController.getAdminIdeas);
+router.get('/admin/discovery/sources', requireAdmin, discoveryController.getSources);
+router.post('/admin/discovery/run', (req, res, next) => getAiLimiter(req)(req, res, next), requireAdmin, discoveryController.runDiscovery);
+router.get('/admin/discovery/suggestions', requireAdmin, discoveryController.getSuggestions);
+router.post('/admin/discovery/suggestions/:id/approve', (req, res, next) => getWriteLimiter(req)(req, res, next), requireAdmin, discoveryController.approveSuggestion);
+router.post('/admin/discovery/suggestions/:id/reject', (req, res, next) => getWriteLimiter(req)(req, res, next), requireAdmin, discoveryController.rejectSuggestion);
 
 // Importar plan desde URL externa (OG meta + IA)
 router.post('/importar-url', (req, res, next) => getAiLimiter(req)(req, res, next), requireAuthorized, importarController.importFromUrl);

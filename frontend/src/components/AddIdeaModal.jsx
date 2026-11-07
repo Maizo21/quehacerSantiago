@@ -21,6 +21,9 @@ export default function AddIdeaModal({ onClose, onCreated, apiUrl, getToken }) {
     descripcion: '',
     ubicacion: '',
     fecha: '',
+    fechaFin: '',
+    precio: '0',
+    precioEstado: 'NO_INFORMADO',
     destacado: false
   });
   const [selectedTags, setSelectedTags] = useState([]);
@@ -67,7 +70,11 @@ export default function AddIdeaModal({ onClose, onCreated, apiUrl, getToken }) {
         ...prev,
         titulo: data.titulo || prev.titulo,
         descripcion: data.descripcion || prev.descripcion,
-        ubicacion: data.ubicacion || prev.ubicacion
+        ubicacion: data.ubicacion || prev.ubicacion,
+        fecha: data.fecha || prev.fecha,
+        fechaFin: data.fechaFin || prev.fechaFin,
+        precio: String(data.precio ?? prev.precio),
+        precioEstado: data.precioEstado || prev.precioEstado
       }));
 
       if (Array.isArray(data.tags) && data.tags.length > 0) {
@@ -107,6 +114,11 @@ export default function AddIdeaModal({ onClose, onCreated, apiUrl, getToken }) {
     formData.append('ubicacion', form.ubicacion);
     formData.append('tags', selectedTags.join(','));
     if (form.fecha) formData.append('fecha', form.fecha);
+    if (form.fechaFin) formData.append('fechaFin', form.fechaFin);
+    formData.append('precio', form.precio || '0');
+    formData.append('precioEstado', form.precioEstado);
+    if (importSource) formData.append('fuenteNombre', importSource);
+    if (importUrl.trim()) formData.append('fuenteUrl', importUrl.trim());
     formData.append('destacado', form.destacado);
     if (image) formData.append('imagen', image);
 
@@ -256,6 +268,50 @@ export default function AddIdeaModal({ onClose, onCreated, apiUrl, getToken }) {
               onChange={e => setForm({ ...form, fecha: e.target.value })}
               className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-light focus:outline-none focus:ring-2 focus:ring-sage/50"
             />
+          </div>
+
+          <div>
+            <label htmlFor="add-fecha-fin" className="block text-sm font-medium text-sage-dim mb-1">
+              Fecha final <span className="font-normal text-sage-dim/50">(si dura varios días)</span>
+            </label>
+            <input
+              id="add-fecha-fin"
+              type="date"
+              min={form.fecha || undefined}
+              value={form.fechaFin}
+              onChange={e => setForm({ ...form, fechaFin: e.target.value })}
+              className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-light focus:outline-none focus:ring-2 focus:ring-sage/50"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="add-precio-estado" className="block text-sm font-medium text-sage-dim mb-1">Precio</label>
+              <select
+                id="add-precio-estado"
+                value={form.precioEstado}
+                onChange={e => setForm({ ...form, precioEstado: e.target.value, precio: e.target.value === 'PAGADO' ? form.precio : '0' })}
+                className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-light focus:outline-none focus:ring-2 focus:ring-sage/50"
+              >
+                <option value="NO_INFORMADO">No informado</option>
+                <option value="GRATIS">Gratis</option>
+                <option value="PAGADO">Pagado</option>
+              </select>
+            </div>
+            {form.precioEstado === 'PAGADO' && (
+              <div>
+                <label htmlFor="add-precio" className="block text-sm font-medium text-sage-dim mb-1">Valor CLP</label>
+                <input
+                  id="add-precio"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.precio}
+                  onChange={e => setForm({ ...form, precio: e.target.value })}
+                  className="w-full bg-card border border-border rounded-lg px-3 py-2.5 text-light focus:outline-none focus:ring-2 focus:ring-sage/50"
+                />
+              </div>
+            )}
           </div>
 
           <div>

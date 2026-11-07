@@ -12,6 +12,7 @@ import HomeHero from '@/components/HomeHero';
 import FeaturedPlan from '@/components/FeaturedPlan';
 import { ideaMatchesCategory, getCategoryByKey } from '@/lib/categories';
 import Link from 'next/link';
+import { dateKey, todayInSantiago } from '@/lib/eventDates';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -45,20 +46,16 @@ function HomeContent() {
     fetchIdeas();
   }, [searchQuery]);
 
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+  const today = todayInSantiago();
 
-  const upcomingPlans = ideas.filter(i => i.fecha && new Date(i.fecha) >= now)
-    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  const upcomingPlans = ideas.filter(i => i.fecha && dateKey(i.fechaFin || i.fecha) >= today)
+    .sort((a, b) => dateKey(a.fecha).localeCompare(dateKey(b.fecha)));
 
   const outdoorPlans = ideas.filter(i => ideaMatchesCategory(i, 'outdoor'));
   const culturalPlans = ideas.filter(i => ideaMatchesCategory(i, 'cultura'));
   const freePlans = ideas.filter(i => ideaMatchesCategory(i, 'gratis'));
 
   const suggestionPlans = ideas.slice(0, 20);
-
-  const pastPlans = ideas.filter(i => i.fecha && new Date(i.fecha) < now)
-    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
   const destacados = ideas.filter(i => i.destacado);
   const featuredPlan = destacados.length > 0
@@ -163,7 +160,6 @@ function HomeContent() {
             </div>
           </section>
 
-          <SectionSlider title="YA PASARON" ideas={pastPlans} isPast />
         </>
       )}
 

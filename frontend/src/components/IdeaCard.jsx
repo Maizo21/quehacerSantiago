@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { getTagStyle } from '@/lib/categories';
+import { formatEventRange } from '@/lib/eventDates';
 
 const GRADIENTS = [
   'from-emerald-800 to-teal-900',
@@ -129,12 +130,14 @@ export default function IdeaCard({ idea, apiUrl, isAdmin, getToken, onDeleted })
 
         {idea.fecha && (
           <time dateTime={idea.fecha} className="text-sm text-sage mb-3 block">
-            {new Date(idea.fecha).toLocaleDateString('es-CL', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'short'
-            })}
+            {formatEventRange(idea.fecha, idea.fechaFin)}
           </time>
+        )}
+
+        {idea.precioEstado && idea.precioEstado !== 'NO_INFORMADO' && (
+          <p className="text-sm text-sage-dim mb-3">
+            {idea.precioEstado === 'GRATIS' ? 'Gratis' : `$${Number(idea.precio || 0).toLocaleString('es-CL')}`}
+          </p>
         )}
 
         <ul className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3 mt-auto list-none" aria-label="Etiquetas del plan">

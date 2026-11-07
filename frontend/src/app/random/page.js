@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { AVAILABLE_TAGS } from '@/components/TagSelector';
 import { getTagStyle } from '@/lib/categories';
+import { formatEventRange } from '@/lib/eventDates';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -171,11 +172,7 @@ export default function RandomPage() {
 
             {idea.fecha && (
               <time dateTime={idea.fecha} className="text-sm text-sage block mb-4">
-                {new Date(idea.fecha).toLocaleDateString('es-CL', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long'
-                })}
+                {formatEventRange(idea.fecha, idea.fechaFin)}
               </time>
             )}
 

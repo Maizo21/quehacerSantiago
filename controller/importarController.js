@@ -2,6 +2,7 @@ const cheerio = require('cheerio');
 const dns = require('dns').promises;
 const sanitizeHtml = require('sanitize-html');
 const { GoogleGenAI, Type } = require('@google/genai');
+const { getSantiagoDateKey, parseDateOnly } = require('../lib/dateUtils');
 
 const clean = (str) => str ? sanitizeHtml(str, { allowedTags: [], allowedAttributes: {} }).trim() : str;
 
@@ -20,6 +21,10 @@ const SCHEMA = {
         titulo: { type: Type.STRING },
         descripcion: { type: Type.STRING },
         ubicacion: { type: Type.STRING },
+        fecha: { type: Type.STRING },
+        fechaFin: { type: Type.STRING },
+        precio: { type: Type.NUMBER },
+        precioEstado: { type: Type.STRING },
         tags: { type: Type.ARRAY, items: { type: Type.STRING } }
     },
     required: ['titulo']
@@ -121,11 +126,14 @@ exports.importFromUrl = async (req, res) => {
 Si la página NO trata sobre un plan, lugar o actividad físico en Santiago de Chile (ej: noticia política, deporte mundial, gaming, e-commerce general), devuelve titulo como string vacío "".
 
 CONTENIDO:
+- Hoy en Santiago: ${getSantiagoDateKey()}
 - Título: ${ogTitle || ''}
 - Descripción: ${ogDesc || ''}
 - Sitio: ${ogSiteName || ''}
 - URL: ${url}
 - Texto: ${bodyText}
+
+Para eventos con fecha incluye fecha en formato YYYY-MM-DD y fechaFin si dura varios dias. No confundas la fecha de publicacion con la fecha del evento. Para lugares permanentes o cuando no se informa usa fecha "". Incluye precio como entero CLP (0 si es gratis o no se informa) y precioEstado exactamente GRATIS, PAGADO o NO_INFORMADO.
 
 Genera JSON:
 - titulo: nombre claro y breve del plan o lugar (máx 80 caracteres). Si no aplica, ""
@@ -192,6 +200,12 @@ Genera JSON:
             titulo: clean(parsed.titulo).slice(0, 80),
             descripcion: clean(parsed.descripcion || '').slice(0, 300),
             ubicacion: clean(parsed.ubicacion || '').slice(0, 100),
+            fecha: parseDateOnly(parsed.fecha)?.toISOString().slice(0, 10) || '',
+            fechaFin: parseDateOnly(parsed.fechaFin)?.toISOString().slice(0, 10) || '',
+            precio: Math.max(0, Math.round(Number(parsed.precio) || 0)),
+            precioEstado: ['GRATIS', 'PAGADO', 'NO_INFORMADO'].includes(parsed.precioEstado)
+                ? parsed.precioEstado
+                : 'NO_INFORMADO',
             tags: Array.isArray(parsed.tags)
                 ? parsed.tags.slice(0, 4).map(t => clean(String(t))).filter(Boolean)
                 : [],
