@@ -14,24 +14,29 @@ const BLOCKED_EVENT_KEYWORDS = Array.from(new Set([
     ...(process.env.BLOCKED_EVENT_KEYWORDS || '').split(',')
 ])).map(value => normalize(value)).filter(Boolean);
 const MAX_SAME_EVENT_SUGGESTIONS = Math.max(1, Math.min(5, Number(process.env.MAX_SAME_EVENT_SUGGESTIONS) || 2));
+const DIRECT_EXTRACTION_SOURCES = new Set([
+    'biblioteca-nacional',
+    'bibliotecas-providencia',
+    'patrimonio-cultural',
+    'hoy-jugue'
+]);
 
 const SOURCES = [
     { id: 'biblioteca-santiago', nombre: 'Biblioteca de Santiago', tipo: 'WEB', url: 'https://www.bibliotecasantiago.gob.cl/cartelera/proximos' },
+    { id: 'biblioteca-nacional', nombre: 'Biblioteca Nacional', tipo: 'WEB', url: 'https://www.bibliotecanacional.gob.cl/cartelera' },
+    { id: 'bibliotecas-providencia', nombre: 'Bibliotecas de Providencia', tipo: 'WEB', url: 'https://biblioteca.providencia.cl/provi/site/edic/base/port/inicio.html' },
+    { id: 'patrimonio-cultural', nombre: 'Cartelera de Patrimonio Cultural', tipo: 'WEB', url: 'https://www.bibliotecanacional.gob.cl/cartelera/red-nacional?region=RM' },
     { id: 'visit-santiago', nombre: 'Visit Santiago', tipo: 'WEB', url: 'https://visitsantiago.travel/panoramas/' },
     { id: 'cclm', nombre: 'Centro Cultural La Moneda', tipo: 'WEB', url: 'https://www.cclm.cl/' },
     { id: 'gam', nombre: 'GAM', tipo: 'WEB', url: 'https://gam.cl/es/calendario/' },
     { id: 'la-tercera-finde', nombre: 'La Tercera Finde', tipo: 'RSS', url: 'https://www.latercera.com/arcio/rss/' },
-    { id: 'la-tercera-stories', nombre: 'La Tercera Stories', tipo: 'WEB', url: 'https://stories.latercera.com/' },
+    { id: 'camara-libro', nombre: 'Cámara Chilena del Libro y FILSA', tipo: 'WEB', url: 'https://camaradellibro.cl/' },
+    { id: 'hoy-jugue', nombre: 'Hoy Jugué · ferias y juegos', tipo: 'WEB', url: 'https://hoyjugue.cl/agenda/' },
     { id: 'mesa-1', nombre: 'Mesa 1', tipo: 'WEB', url: 'https://www.mesa1.cl/pages/events' },
     { id: 'bastion-goblin', nombre: 'Bastión Goblin', tipo: 'WEB', url: 'https://bastiongoblin.com/pages/torneos' },
     { id: 'area-52', nombre: 'Área 52', tipo: 'WEB', url: 'https://area52.cl/collections/eventos' },
     { id: 'enroque', nombre: 'Enroque Juegos de Mesa', tipo: 'WEB', url: 'https://juegosenroque.cl/' },
-    { id: 'shivano', nombre: 'Shivano Store', tipo: 'WEB', url: 'https://shivano.cl/' },
-    { id: 'demente-games', nombre: 'Demente Games', tipo: 'WEB', url: 'https://dementegames.cl/' },
-    { id: 'instagram-enroque', nombre: 'Instagram · Enroque', tipo: 'INSTAGRAM', url: 'https://www.instagram.com/enroque_juegosdemesa/' },
-    { id: 'instagram-demente', nombre: 'Instagram · Demente Games', tipo: 'INSTAGRAM', url: 'https://www.instagram.com/dementegames_cl/' },
-    { id: 'entrejuegos', nombre: 'EntreJuegos', tipo: 'WEB', url: 'https://www.entrejuegos.cl/eventos' },
-    { id: 'casa-de-juegos', nombre: 'Casa de Juegos', tipo: 'WEB', url: 'https://www.casadejuegos.cl/blogs/noticias' }
+    { id: 'magicsur', nombre: 'MagicSur · torneos de cartas', tipo: 'WEB', url: 'https://www.cartasmagicsur.cl/torneos' }
 ];
 
 const AI_SCHEMA = {
@@ -153,6 +158,220 @@ async function fetchText(url) {
     } finally {
         clearTimeout(timeout);
     }
+}
+
+const SPANISH_MONTHS = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+];
+
+function currentProvidenciaUrl() {
+    const [year, month] = getSantiagoDateKey().split('-');
+    return `https://biblioteca.providencia.cl/provi/${year}-actividades-de-${SPANISH_MONTHS[Number(month) - 1]}`;
+}
+
+async function fetchSource(source) {
+    const urls = source.id === 'bibliotecas-providencia'
+        ? [currentProvidenciaUrl(), source.url]
+        : [source.url];
+    let lastError;
+    for (const url of urls) {
+        try {
+            return { html: await fetchText(url), url };
+        } catch (error) {
+            lastError = error;
+        }
+    }
+    throw lastError;
+}
+
+function parseSpanishDate(text, fallbackYear = Number(getSantiagoDateKey().slice(0, 4))) {
+    const value = normalize(text);
+    const monthPattern = SPANISH_MONTHS.join('|');
+    const match = value.match(new RegExp(`(?:^|\\s)(\\d{1,2})\\s+de\\s+(${monthPattern})(?:\\s+de\\s+(20\\d{2}))?`));
+    if (!match) return null;
+    const month = SPANISH_MONTHS.indexOf(match[2]) + 1;
+    const year = Number(match[3] || fallbackYear);
+    return parseDateOnly(`${year}-${String(month).padStart(2, '0')}-${String(Number(match[1])).padStart(2, '0')}`);
+}
+
+function parseHeritageDate(value) {
+    const iso = parseDateOnly(value);
+    if (iso) return iso;
+    const text = normalize(value);
+    const match = text.match(new RegExp(`(\\d{1,2})\\s+(${SPANISH_MONTHS.join('|')})\\s+(20\\d{2})`));
+    if (!match) return null;
+    const month = SPANISH_MONTHS.indexOf(match[2]) + 1;
+    return parseDateOnly(`${match[3]}-${String(month).padStart(2, '0')}-${String(Number(match[1])).padStart(2, '0')}`);
+}
+
+function eventPrice(text) {
+    const value = clean(text, 500);
+    if (/gratis|gratuita|entrada liberada|sin costo/i.test(value)) {
+        return { precio: 0, precioEstado: 'GRATIS' };
+    }
+    const match = value.match(/\$\s*([\d.]+)/);
+    const amount = match ? Number(match[1].replace(/\./g, '')) : 0;
+    return amount > 0
+        ? { precio: amount, precioEstado: 'PAGADO' }
+        : { precio: 0, precioEstado: 'NO_INFORMADO' };
+}
+
+function inferredTags(text, defaults = ['cultural']) {
+    const value = normalize(text);
+    const tags = new Set(defaults);
+    if (/juego|ludic|ajedrez|catan|rol\b/.test(value)) tags.add('juegos');
+    if (/carta|tcg|pokemon|magic|yu gi oh/.test(value)) tags.add('cartas');
+    if (/libro|lectura|literar|cuento|comic|poesia|editorial/.test(value)) tags.add('libros');
+    if (/gratis|gratuita|entrada liberada/.test(value)) tags.add('gratis');
+    if (/famil|infantil|nino|nina/.test(value)) tags.add('familiar');
+    return Array.from(tags).slice(0, 5);
+}
+
+function isProvidenciaCultureEvent(title, location) {
+    const value = normalize(`${title} ${location}`);
+    return /biblioteca|cafe literario|montecarmelo|libro|lectura|cuento|poesia|comic|ajedrez|videojuego|juego de mesa|feria|festival|cine|teatro|exposicion|museo|patrimonio|arte|ilustrad|encuadernacion|ghibli/.test(value);
+}
+
+function inAllowedWindow(event, maxDate) {
+    return Boolean(event.fecha && event.fecha <= maxDate && (event.fechaFin || event.fecha) >= todayAsUtcDate());
+}
+
+function uniqueUpcomingEvents(events, limit = 20) {
+    const seen = new Set();
+    const unique = events
+        .sort((a, b) => a.fecha - b.fecha || b.confianza - a.confianza)
+        .filter(event => {
+            const key = `${normalize(event.titulo)}|${event.fecha.toISOString().slice(0, 10)}|${normalize(event.ubicacion)}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    const today = todayAsUtcDate();
+    const buckets = [[], [], []];
+    for (const event of unique) {
+        const effectiveDate = event.fecha < today && event.fechaFin >= today ? today : event.fecha;
+        const daysAway = Math.floor((effectiveDate - today) / 86400000);
+        buckets[daysAway <= 7 ? 0 : daysAway <= 14 ? 1 : 2].push(event);
+    }
+    const selected = [
+        ...buckets[0].slice(0, 8),
+        ...buckets[1].slice(0, 6),
+        ...buckets[2].slice(0, 6)
+    ];
+    if (selected.length < limit) {
+        const selectedSet = new Set(selected);
+        selected.push(...unique.filter(event => !selectedSet.has(event)).slice(0, limit - selected.length));
+    }
+    return selected.sort((a, b) => a.fecha - b.fecha).slice(0, limit);
+}
+
+function extractHeritageEvents(html, source, maxDate) {
+    const $ = cheerio.load(html);
+    const events = [];
+    $('.node--evento, .views-row').each((_, element) => {
+        const card = $(element);
+        const link = card.find('h2 a').first();
+        const titulo = clean(link.text(), 200);
+        const dateNodes = card.find('.field--name-field-fechas time');
+        const fecha = parseHeritageDate(dateNodes.first().attr('datetime') || dateNodes.first().text());
+        const fechaFin = parseHeritageDate(dateNodes.eq(1).attr('datetime') || dateNodes.eq(1).text());
+        const ubicacion = clean(card.find('.field--name-field-direccion').first().text(), 200) || 'Santiago';
+        if (!titulo || !fecha) return;
+        if (source.id === 'patrimonio-cultural' && !/santiago|recoleta|quinta normal/i.test(ubicacion)) return;
+        const event = {
+            titulo,
+            descripcion: clean(card.find('.field--name-field-tipo-evento, .field--name-field-tematica').first().text(), 500),
+            ubicacion,
+            fecha,
+            fechaFin,
+            precio: 0,
+            precioEstado: source.id === 'biblioteca-nacional' ? 'GRATIS' : 'NO_INFORMADO',
+            imagenUrl: safeExternalUrl(card.find('img').first().attr('src'), null),
+            fuenteUrl: safeExternalUrl(link.attr('href'), source.url),
+            tags: inferredTags(`${titulo} ${card.text()}`, source.id === 'biblioteca-nacional' ? ['libros', 'cultural', 'gratis'] : ['cultural']),
+            confianza: 95,
+            advertencias: null
+        };
+        if (inAllowedWindow(event, maxDate)) events.push(event);
+    });
+    return events;
+}
+
+function extractProvidenciaEvents(html, source, maxDate) {
+    const $ = cheerio.load(html);
+    const year = Number(getSantiagoDateKey().slice(0, 4));
+    const events = [];
+    $('table tr').each((_, row) => {
+        const cells = $(row).children('td');
+        if (cells.length < 3) return;
+        const dateText = clean(cells.eq(0).text(), 200);
+        const details = clean(cells.eq(1).text(), 1000);
+        const fecha = parseSpanishDate(dateText, year);
+        const titulo = clean(details.split(/inscripciones|gratuita|más info|previa inscripción|valor sujeto/i)[0], 200)
+            .replace(/^["“”]+|["“”]+$/g, '')
+            .trim();
+        if (!fecha || !titulo) return;
+        const price = eventPrice(details);
+        const ubicacion = clean(cells.eq(2).text(), 200) || 'Providencia, Santiago';
+        if (!isProvidenciaCultureEvent(titulo, ubicacion)) return;
+        const event = {
+            titulo,
+            descripcion: details,
+            ubicacion,
+            fecha,
+            fechaFin: null,
+            ...price,
+            imagenUrl: null,
+            fuenteUrl: safeExternalUrl(cells.eq(1).find('a[href]').first().attr('href'), source.url),
+            tags: inferredTags(`${titulo} ${details}`, ['cultural']),
+            confianza: 92,
+            advertencias: null
+        };
+        if (inAllowedWindow(event, maxDate)) events.push(event);
+    });
+    return events;
+}
+
+function extractHoyJuegueEvents(html, source, maxDate) {
+    const $ = cheerio.load(html);
+    const events = [];
+    $('article.hja-overview-card').each((_, element) => {
+        const card = $(element);
+        const link = card.find('h3 a').first();
+        const titulo = clean(link.text(), 200);
+        const fecha = parseDateOnly(card.find('time[datetime]').first().attr('datetime'));
+        const ubicacion = clean(card.find('.hja-overview-card__location').text(), 200);
+        if (!titulo || !fecha || !/santiago/i.test(ubicacion)) return;
+        const priceText = clean(card.find('.hja-overview-card__price').text(), 500);
+        const event = {
+            titulo,
+            descripcion: priceText,
+            ubicacion,
+            fecha,
+            fechaFin: null,
+            ...eventPrice(priceText),
+            imagenUrl: safeExternalUrl(card.find('img').first().attr('src'), null),
+            fuenteUrl: safeExternalUrl(link.attr('href'), source.url),
+            tags: inferredTags(`${titulo} ${priceText}`, ['juegos']),
+            confianza: 96,
+            advertencias: null
+        };
+        if (inAllowedWindow(event, maxDate)) events.push(event);
+    });
+    return events;
+}
+
+function extractDirectEvents(html, source, maxDate) {
+    let events = [];
+    if (source.id === 'biblioteca-nacional' || source.id === 'patrimonio-cultural') {
+        events = extractHeritageEvents(html, source, maxDate);
+    } else if (source.id === 'bibliotecas-providencia') {
+        events = extractProvidenciaEvents(html, source, maxDate);
+    } else if (source.id === 'hoy-jugue') {
+        events = extractHoyJuegueEvents(html, source, maxDate);
+    }
+    return uniqueUpcomingEvents(events);
 }
 
 function flattenJsonLd(value, output = []) {
@@ -351,17 +570,22 @@ async function runSource(source) {
         update: { nombre: source.nombre, url: source.url, tipo: source.tipo, ultimaEjecucion: startedAt, ultimoEstado: 'EJECUTANDO', ultimoError: null }
     });
     try {
-        const html = await fetchText(source.url);
+        const fetched = await fetchSource(source);
+        const extractionSource = { ...source, url: fetched.url };
+        const html = fetched.html;
         const maxDate = addUtcDays(todayAsUtcDate(), 45);
-        const structured = extractJsonLdEvents(html, source, maxDate);
+        const direct = extractDirectEvents(html, extractionSource, maxDate);
+        const structured = extractJsonLdEvents(html, extractionSource, maxDate);
         let aiEvents = [];
         let aiError = null;
-        try {
-            aiEvents = await extractWithAi(html, source, maxDate);
-        } catch (error) {
-            aiError = error;
+        if (!DIRECT_EXTRACTION_SOURCES.has(source.id) || direct.length === 0) {
+            try {
+                aiEvents = await extractWithAi(html, extractionSource, maxDate);
+            } catch (error) {
+                aiError = error;
+            }
         }
-        const all = [...structured, ...aiEvents];
+        const all = [...direct, ...structured, ...aiEvents];
         if (aiError && all.length === 0) throw aiError;
         const created = await persistEvents(all, source);
         const status = aiError ? 'PARCIAL' : 'OK';
@@ -388,5 +612,6 @@ module.exports = {
     eventFamilyKey,
     isBlockedEvent,
     friendlySourceError,
+    extractDirectEvents,
     runSource
 };

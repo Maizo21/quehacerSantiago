@@ -146,6 +146,6 @@ curl -X GET "http://quehacersantiago-production.up.railway.app/ideas?id=1"
 - Los endpoints públicos ocultan automáticamente los eventos cuya fecha final (o fecha inicial) ya pasó en `America/Santiago`.
 - Los planes sin fecha se consideran permanentes y siguen visibles.
 - `/admin` permite revisar planes activos, vencidos y sin fecha, además de ejecutar búsquedas de eventos y aprobar o rechazar candidatos.
-- El descubrimiento consulta fuentes culturales, editoriales y tiendas de juegos bajo demanda. Requiere `GEMINI_API_KEY` para extraer eventos desde páginas no estructuradas.
+- El descubrimiento consulta carteleras de bibliotecas, patrimonio, ferias editoriales y agendas de juegos bajo demanda. Biblioteca Nacional, Bibliotecas de Providencia, Patrimonio Cultural y Hoy Jugué tienen extracción directa; `GEMINI_API_KEY` sólo es necesaria para páginas no estructuradas.
 - Las publicaciones de Instagram que no sean accesibles automáticamente se pueden procesar desde **Importar desde una URL** al crear un plan.
 - En producción, `npm start` ejecuta `prisma db push` antes de iniciar el servidor y crea las tablas nuevas.

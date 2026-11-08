@@ -7,7 +7,16 @@ import EditIdeaModal from '@/components/EditIdeaModal';
 import { dateKey, formatEventRange, todayInSantiago } from '@/lib/eventDates';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const RECOMMENDED_SOURCES = ['biblioteca-santiago', 'visit-santiago', 'cclm', 'la-tercera-stories', 'mesa-1', 'bastion-goblin'];
+const RECOMMENDED_SOURCES = [
+  'biblioteca-santiago',
+  'biblioteca-nacional',
+  'bibliotecas-providencia',
+  'patrimonio-cultural',
+  'gam',
+  'camara-libro',
+  'hoy-jugue',
+  'mesa-1'
+];
 
 function addDays(key, days) {
   const date = new Date(`${key}T00:00:00.000Z`);
@@ -208,7 +217,7 @@ export default function AdminPage() {
               ))}
             </div>
             <p className="text-xs text-sage-dim mt-4">Se muestran como máximo 2 alternativas del mismo evento. Nexus está excluido de tus sugerencias.</p>
-            <p className="text-xs text-sage-dim mt-4">Para publicaciones de Instagram que no sean accesibles automáticamente, usa “Importar desde una URL” al agregar un plan.</p>
+            <p className="text-xs text-sage-dim mt-2">El descubrimiento automático prioriza carteleras web con fechas verificables; los perfiles de Instagram ya no se consultan.</p>
           </section>
 
           {buckets.map(bucket => (

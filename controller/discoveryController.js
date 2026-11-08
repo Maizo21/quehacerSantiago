@@ -11,7 +11,16 @@ const {
 const { todayAsUtcDate } = require('../lib/dateUtils');
 
 const clean = value => sanitizeHtml(String(value || ''), { allowedTags: [], allowedAttributes: {} }).trim();
-const DISABLED_SUGGESTION_SOURCES = new Set(['freljord']);
+const DISABLED_SUGGESTION_SOURCES = new Set([
+    'freljord',
+    'instagram-enroque',
+    'instagram-demente',
+    'shivano',
+    'demente-games',
+    'entrejuegos',
+    'casa-de-juegos',
+    'la-tercera-stories'
+]);
 
 function serializeSuggestion(item) {
     return {
@@ -40,7 +49,7 @@ exports.runDiscovery = async (req, res) => {
         ? SOURCES.filter(source => requested.includes(source.id))
         : SOURCES;
     if (selected.length === 0) return res.status(400).json({ Error: 'No se seleccionaron fuentes válidas' });
-    if (selected.length > 14) return res.status(400).json({ Error: 'Máximo 14 fuentes por búsqueda' });
+    if (selected.length > 20) return res.status(400).json({ Error: 'Máximo 20 fuentes por búsqueda' });
 
     const results = [];
     for (const source of selected) {
