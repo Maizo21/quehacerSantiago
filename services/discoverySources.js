@@ -32,8 +32,12 @@ const SOURCES = [
     { id: 'mesa-1', nombre: 'Mesa 1', tipo: 'WEB', url: 'https://www.mesa1.cl/pages/events' },
     { id: 'bastion-goblin', nombre: 'Bastión Goblin', tipo: 'WEB', url: 'https://bastiongoblin.com/pages/torneos' },
     { id: 'area-52', nombre: 'Área 52', tipo: 'WEB', url: 'https://area52.cl/collections/eventos' },
-    { id: 'enroque', nombre: 'Enroque Juegos de Mesa', tipo: 'WEB', url: 'https://juegosenroque.cl/' },
     { id: 'magicsur', nombre: 'MagicSur · torneos de cartas', tipo: 'WEB', url: 'https://www.cartasmagicsur.cl/torneos' },
+    { id: 'torneos-tcg', nombre: 'TorneosTCG · calendario RM', tipo: 'WEB', url: 'https://www.torneostcg.cl/region-metropolitana', extractor: 'DATED_HEADINGS', ubicacion: 'Región Metropolitana', tags: ['cartas', 'juegos'] },
+    { id: 'eventhoy-juegos', nombre: 'EventHoy · juegos y gaming', tipo: 'WEB', url: 'https://eventhoy.com/categoria/juegos', extractor: 'DATED_HEADINGS', ubicacion: 'Santiago', tags: ['juegos'] },
+    { id: 'collector-center', nombre: 'Collector Center · eventos TCG', tipo: 'WEB', url: 'https://collectorcenter.cl/pages/eventos', extractor: 'DATED_HEADINGS', ubicacion: 'Providencia, Santiago', tags: ['cartas', 'juegos'] },
+    { id: 'deck-shield', nombre: 'Deck Shield · eventos TCG', tipo: 'WEB', url: 'https://deckshield.cl/pages/eventos', extractor: 'DATED_HEADINGS', ubicacion: 'Santiago', tags: ['cartas', 'juegos'] },
+    { id: 'instituto-italiano', nombre: 'Instituto Italiano · Barrio Italia', tipo: 'WEB', url: 'https://iicsantiago.esteri.it/es/gli_eventi/calendario/', extractor: 'DATED_HEADINGS', ubicacion: 'Providencia, Santiago', tags: ['barrio italia', 'cultural'] },
     { id: 'matucana-100', nombre: 'Matucana 100', tipo: 'WEB', url: 'https://www.m100.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Matucana 100, Estación Central', tags: ['cultural'] },
     { id: 'mnba', nombre: 'Museo Nacional de Bellas Artes', tipo: 'WEB', url: 'https://www.mnba.gob.cl/cartelera', extractor: 'HERITAGE', ubicacion: 'Museo Nacional de Bellas Artes, Santiago', gratis: true, tags: ['arte', 'cultural', 'gratis'] },
     { id: 'mac', nombre: 'Museo de Arte Contemporáneo', tipo: 'WEB', url: 'https://mac.uchile.cl/periodo/actuales/', extractor: 'DATED_HEADINGS', ubicacion: 'Museo de Arte Contemporáneo, Santiago', gratis: true, tags: ['arte', 'cultural', 'gratis'] },
@@ -44,7 +48,18 @@ const SOURCES = [
     { id: 'teatro-la-florida', nombre: 'Teatro Municipal de La Florida', tipo: 'WEB', url: 'https://portaldisc.com/eventos/teatromunicipaldelaflorida', extractor: 'DATED_HEADINGS', ubicacion: 'Teatro Municipal de La Florida, La Florida', gratis: true, tags: ['municipal', 'teatro', 'cultural', 'gratis'] },
     { id: 'cultura-nunoa', nombre: 'Corporación Cultural de Ñuñoa', tipo: 'WEB', url: 'https://www.ccn.cl/actividades', extractor: 'DATED_HEADINGS', ubicacion: 'Ñuñoa, Santiago', tags: ['municipal', 'cultural'] },
     { id: 'mallplaza-vespucio', nombre: 'Mallplaza Vespucio · panoramas', tipo: 'WEB', url: 'https://www.mallplaza.com/cl/vespucio/panoramas/index.html', extractor: 'DATED_HEADINGS', ubicacion: 'Mallplaza Vespucio, La Florida', tags: ['mall', 'panorama'] },
-    { id: 'parque-arauco', nombre: 'Parque Arauco · eventos', tipo: 'WEB', url: 'https://www.parquearauco.cl/eventos', extractor: 'DATED_HEADINGS', ubicacion: 'Parque Arauco, Las Condes', tags: ['mall', 'panorama'] }
+    { id: 'parque-arauco', nombre: 'Parque Arauco · eventos', tipo: 'WEB', url: 'https://www.parquearauco.cl/eventos', extractor: 'DATED_HEADINGS', ubicacion: 'Parque Arauco, Las Condes', tags: ['mall', 'panorama'] },
+    { id: 'factoria-franklin', nombre: 'Factoría Franklin · agenda', tipo: 'WEB', url: 'https://factoria-franklin.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Factoría Franklin, Santiago', tags: ['barrio franklin', 'ferias', 'cultural'] },
+    { id: 'agenda-yungay', nombre: 'Agenda Yungay', tipo: 'WEB', url: 'https://agendayungay.cl/eventos/', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Yungay, Santiago', tags: ['barrio yungay', 'cultural'] },
+    { id: 'mavi-uc', nombre: 'MAVI UC · Barrio Lastarria', tipo: 'WEB', url: 'https://mavi.uc.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'MAVI UC, Barrio Lastarria', tags: ['lastarria', 'arte', 'cultural'] },
+    { id: 'santiago-turismo', nombre: 'Santiago Turismo · agenda', tipo: 'WEB', url: 'https://www.santiagoturismo.cl/es/agenda/', extractor: 'DATED_HEADINGS', ubicacion: 'Santiago', tags: ['barrios', 'turismo', 'cultural'] },
+    { id: 'patio-bellavista', nombre: 'Patio Bellavista · eventos', tipo: 'WEB', url: 'https://patiobellavista.cl/eventos/', extractor: 'DATED_HEADINGS', ubicacion: 'Patio Bellavista, Providencia', tags: ['bellavista', 'cultural'], followEventLinks: true },
+    { id: 'barrio-lastarria', nombre: 'Barrio Lastarria · sitio oficial', tipo: 'WEB', url: 'https://barriolastarria.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Lastarria, Santiago', tags: ['lastarria', 'cultural'] },
+    { id: 'vive-bellavista', nombre: 'VIVE Santiago · Bellavista', tipo: 'WEB', url: 'https://vivesantiago.cl/barrio-bellavista.html', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Bellavista, Santiago', tags: ['bellavista', 'barrios'] },
+    { id: 'vive-lastarria', nombre: 'VIVE Santiago · Lastarria', tipo: 'WEB', url: 'https://vivesantiago.cl/barrio-lastarria.html', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Lastarria, Santiago', tags: ['lastarria', 'barrios'] },
+    { id: 'vive-yungay', nombre: 'VIVE Santiago · Yungay', tipo: 'WEB', url: 'https://vivesantiago.cl/barrio-yungay.html', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Yungay, Santiago', tags: ['barrio yungay', 'barrios'] },
+    { id: 'vive-brasil', nombre: 'VIVE Santiago · Barrio Brasil', tipo: 'WEB', url: 'https://vivesantiago.cl/barrio-brasil.html', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Brasil, Santiago', tags: ['barrio brasil', 'barrios'] },
+    { id: 'club-chocolate', nombre: 'Club Chocolate · Bellavista', tipo: 'WEB', url: 'https://clubchocolate.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Club Chocolate, Barrio Bellavista', tags: ['bellavista', 'música', 'noche'] }
 ];
 
 const AI_SCHEMA = {
@@ -598,7 +613,7 @@ function extractDirectEvents(html, source, maxDate) {
             ? extractRssEvents(html, source, maxDate)
             : extractGenericHtmlEvents(html, source, maxDate);
     }
-    return uniqueUpcomingEvents(events, 12);
+    return uniqueUpcomingEvents(events, 20);
 }
 
 function flattenJsonLd(value, output = []) {

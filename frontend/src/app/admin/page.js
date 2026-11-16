@@ -8,9 +8,10 @@ import { dateKey, formatEventRange, todayInSantiago } from '@/lib/eventDates';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const DISMISSED_SUGGESTIONS_KEY = 'quehacerSantiago:dismissed-suggestions:v1';
-const DISCOVERY_RESULTS_KEY = 'quehacerSantiago:discovery-results:v3';
+const DISCOVERY_RESULTS_KEY = 'quehacerSantiago:discovery-results:v5';
 const DISCOVERY_CACHE_MS = 6 * 60 * 60 * 1000;
 const MAX_DISMISSED_SUGGESTIONS = 500;
+const MAX_LOCAL_SUGGESTIONS = 1000;
 const DISCOVERY_EXTENSION_CHANNEL = 'quehacer-santiago-local-discovery-v1';
 const RECOMMENDED_SOURCES = [
   'biblioteca-santiago',
@@ -85,7 +86,7 @@ function writeLocalDiscovery(suggestions, resultados = [], savedAt = Date.now(),
   try {
     window.localStorage.setItem(DISCOVERY_RESULTS_KEY, JSON.stringify({
       savedAt,
-      suggestions: suggestions.slice(0, 300),
+      suggestions: suggestions.slice(0, MAX_LOCAL_SUGGESTIONS),
       resultados,
       sourceIds
     }));
@@ -224,15 +225,6 @@ export default function AdminPage() {
 
   const runDiscovery = async () => {
     if (selectedSources.length === 0) return;
-    const local = visibleLocalSuggestions();
-    const sameSources = local.stored
-      && [...(local.stored.sourceIds || [])].sort().join('|') === [...selectedSources].sort().join('|');
-    if (sameSources) {
-      setSuggestions(local.suggestions);
-      setDismissedCount(local.dismissed.size);
-      setMessage(`${local.suggestions.length} sugerencias recuperadas del navegador. No se consultó Railway.`);
-      return;
-    }
     setRunning(true);
     setError('');
     setMessage('El recolector local está consultando las carteleras desde este navegador...');
@@ -247,8 +239,9 @@ export default function AdminPage() {
       const aiUses = Number(data.iaUsos || 0);
       const discovered = data.suggestions || [];
       const dismissed = readDismissedSuggestions();
+      const visibleDiscovered = discovered.filter(item => !dismissed.has(suggestionKey(item)));
       writeLocalDiscovery(discovered, data.resultados || [], Date.now(), selectedSources);
-      setSuggestions(discovered.filter(item => !dismissed.has(suggestionKey(item))));
+      setSuggestions(visibleDiscovered);
       setDismissedCount(dismissed.size);
       const statusById = new Map((data.resultados || []).map(item => [item.sourceId, item]));
       setSources(current => current.map(source => {
@@ -261,7 +254,7 @@ export default function AdminPage() {
         `${aiUses} consultas IA`,
         '0 consultas de scraping a Railway'
       ].filter(Boolean).join(' · ');
-      setMessage(`${data.nuevos || 0} sugerencias nuevas. ${statusSummary || 'Todas las fuentes respondieron.'}`);
+      setMessage(`${data.nuevos || 0} encontradas · ${visibleDiscovered.length} visibles · ${dismissed.size} ocultadas. ${statusSummary || 'Todas las fuentes respondieron.'}`);
     } catch (err) {
       setError(err.message);
       setMessage('');
@@ -314,7 +307,8 @@ export default function AdminPage() {
     setDismissedCount(0);
     setError('');
     try {
-      await loadSuggestions();
+      const stored = readLocalDiscovery();
+      setSuggestions(stored?.suggestions || []);
       setMessage('Sugerencias ocultadas restauradas en este navegador.');
     } catch (err) {
       setError(err.message);
@@ -376,6 +370,11 @@ export default function AdminPage() {
               <div>
                 <h2 className="font-bold text-light text-lg">Fuentes a consultar</h2>
                 <p className="text-sm text-sage-dim">Los resultados permanecen en este navegador hasta que los apruebes.</p>
+                <p className="text-xs text-sage-dim mt-1">Seleccionadas {selectedSources.length} de {sources.length}. Cada fuente puede aportar hasta 20 eventos; el navegador conserva hasta {MAX_LOCAL_SUGGESTIONS}.</p>
+                <div className="flex gap-3 mt-2">
+                  <button type="button" onClick={() => setSelectedSources(sources.map(source => source.id))} className="text-xs text-sage hover:underline cursor-pointer">Seleccionar todas</button>
+                  <button type="button" onClick={() => setSelectedSources([])} className="text-xs text-sage-dim hover:text-sage hover:underline cursor-pointer">Quitar selección</button>
+                </div>
               </div>
               <button onClick={runDiscovery} disabled={running || selectedSources.length === 0 || extensionStatus !== 'ready'} className="bg-accent hover:bg-accent-light text-white px-5 py-2.5 rounded-lg disabled:opacity-50 cursor-pointer">
                 {running ? 'Buscando...' : 'Buscar nuevos eventos'}

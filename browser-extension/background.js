@@ -74,5 +74,26 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === 'FETCH_DETAIL') {
+    const source = QHSDiscovery.SOURCES.find(item => item.id === message.sourceId && item.followEventLinks);
+    if (!source) {
+      sendResponse({ ok: false, error: 'Fuente de detalle no autorizada' });
+      return false;
+    }
+    let detailUrl;
+    try {
+      detailUrl = new URL(String(message.url || ''), source.url);
+      const sourceUrl = new URL(source.url);
+      if (detailUrl.protocol !== 'https:' || detailUrl.origin !== sourceUrl.origin) throw new Error('URL de detalle no autorizada');
+    } catch (error) {
+      sendResponse({ ok: false, error: error.message });
+      return false;
+    }
+    fetchPage(detailUrl.toString())
+      .then(result => sendResponse({ ok: true, ...result }))
+      .catch(error => sendResponse({ ok: false, error: QHSDiscovery.friendlyError(error) }));
+    return true;
+  }
+
   return false;
 });

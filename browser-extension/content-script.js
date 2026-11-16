@@ -24,7 +24,7 @@
   async function runDiscovery(sourceIds, requestId) {
     const selected = QHSDiscovery.SOURCES.filter(source => sourceIds.includes(source.id));
     if (!selected.length) throw new Error('No se seleccionaron fuentes válidas');
-    if (selected.length > 30) throw new Error('Máximo 30 fuentes por búsqueda');
+    if (selected.length > 50) throw new Error('Máximo 50 fuentes por búsqueda');
 
     const results = [];
     for (let index = 0; index < selected.length; index += 1) {
@@ -37,7 +37,18 @@
       });
       try {
         const fetched = await sendRuntime({ type: 'FETCH_SOURCE', sourceId: source.id });
-        const events = QHSDiscovery.extractSource(fetched.html, { ...source, url: fetched.url });
+        const extractionSource = { ...source, url: fetched.url };
+        let events = QHSDiscovery.extractSource(fetched.html, extractionSource);
+        if (source.followEventLinks) {
+          const detailUrls = QHSDiscovery.eventDetailUrls(fetched.html, extractionSource, 12);
+          for (const detailUrl of detailUrls) {
+            try {
+              const detail = await sendRuntime({ type: 'FETCH_DETAIL', sourceId: source.id, url: detailUrl });
+              events.push(...QHSDiscovery.extractSource(detail.html, { ...source, url: detail.url }));
+            } catch (_) {}
+          }
+          events = QHSDiscovery.mergeEvents(events, 20);
+        }
         results.push({
           sourceId: source.id,
           nombre: source.nombre,

@@ -45,7 +45,7 @@ exports.runDiscovery = async (req, res) => {
         ? SOURCES.filter(source => requested.includes(source.id))
         : SOURCES;
     if (selected.length === 0) return res.status(400).json({ Error: 'No se seleccionaron fuentes válidas' });
-    if (selected.length > 30) return res.status(400).json({ Error: 'Máximo 30 fuentes por búsqueda' });
+    if (selected.length > 50) return res.status(400).json({ Error: 'Máximo 50 fuentes por búsqueda' });
 
     const results = [];
     const aiBudget = {
