@@ -14,12 +14,11 @@ const BLOCKED_EVENT_KEYWORDS = Array.from(new Set([
     ...(process.env.BLOCKED_EVENT_KEYWORDS || '').split(',')
 ])).map(value => normalize(value)).filter(Boolean);
 const MAX_SAME_EVENT_SUGGESTIONS = Math.max(1, Math.min(5, Number(process.env.MAX_SAME_EVENT_SUGGESTIONS) || 2));
-const DIRECT_EXTRACTION_SOURCES = new Set([
-    'biblioteca-nacional',
-    'bibliotecas-providencia',
-    'patrimonio-cultural',
-    'hoy-jugue'
-]);
+const DISCOVERY_AI_FALLBACK_ENABLED = /^(1|true|yes)$/i.test(process.env.DISCOVERY_AI_FALLBACK_ENABLED || 'false');
+const MAX_AI_SOURCES_PER_RUN = Math.max(0, Math.min(3, Number(process.env.MAX_AI_SOURCES_PER_RUN) || 1));
+const DISCOVERY_CACHE_MINUTES = Math.max(5, Math.min(1440, Number(process.env.DISCOVERY_CACHE_MINUTES) || 360));
+const DISCOVERY_FETCH_TIMEOUT_MS = Math.max(3000, Math.min(15000, Number(process.env.DISCOVERY_FETCH_TIMEOUT_MS) || 8000));
+const GEMINI_DISCOVERY_MODEL = process.env.GEMINI_DISCOVERY_MODEL || 'gemini-2.5-flash';
 
 const SOURCES = [
     { id: 'biblioteca-santiago', nombre: 'Biblioteca de Santiago', tipo: 'WEB', url: 'https://www.bibliotecasantiago.gob.cl/cartelera/proximos' },
@@ -103,14 +102,14 @@ function isRetryableAiError(error) {
 function friendlySourceError(error) {
     const message = String(error?.message || error || 'Error desconocido');
     if (isRetryableAiError(error)) return 'Gemini está temporalmente saturado. Intenta nuevamente en unos minutos.';
-    if (error?.name === 'AbortError') return 'La fuente tardó más de 12 segundos en responder.';
+    if (error?.name === 'AbortError') return `La fuente tardó más de ${Math.round(DISCOVERY_FETCH_TIMEOUT_MS / 1000)} segundos en responder.`;
     if (/fetch failed/i.test(message)) return 'No se pudo conectar con la fuente.';
     const http = message.match(/HTTP\s+(\d{3})/i);
     if (http) return `La fuente respondió con error ${http[1]}.`;
     return clean(message, 240) || 'Error desconocido';
 }
 
-async function generateWithRetry(request, maxAttempts = 3) {
+async function generateWithRetry(request, maxAttempts = 1) {
     let lastError;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
@@ -140,7 +139,7 @@ function fingerprint(event) {
 
 async function fetchText(url) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
+    const timeout = setTimeout(() => controller.abort(), DISCOVERY_FETCH_TIMEOUT_MS);
     try {
         const response = await fetch(url, {
             signal: controller.signal,
@@ -362,6 +361,98 @@ function extractHoyJuegueEvents(html, source, maxDate) {
     return events;
 }
 
+const LOOSE_MONTHS = {
+    ene: 1, enero: 1, feb: 2, febrero: 2, mar: 3, marzo: 3, abr: 4, abril: 4,
+    may: 5, mayo: 5, jun: 6, junio: 6, jul: 7, julio: 7, ago: 8, agosto: 8,
+    sep: 9, sept: 9, septiembre: 9, setiembre: 9, oct: 10, octubre: 10,
+    nov: 11, noviembre: 11, dic: 12, diciembre: 12
+};
+const GENERIC_EVENT_KEYWORDS = /torneo|evento|actividad|feria|festival|taller|charla|encuentro|exposici[oó]n|concierto|funci[oó]n|jornada|prelanzamiento|presentaci[oó]n|club de lectura|cuentacuentos|juego de mesa|tcg|pok[eé]mon|magic|catan|ajedrez|comic|c[oó]mic/i;
+
+function parseLooseEventDate(value) {
+    const raw = clean(value, 1600);
+    const iso = raw.match(/(20\d{2})-(\d{2})-(\d{2})/);
+    if (iso) return parseDateOnly(`${iso[1]}-${iso[2]}-${iso[3]}`);
+    const numeric = raw.match(/\b(\d{1,2})[/-](\d{1,2})[/-](20\d{2})\b/);
+    if (numeric) return parseDateOnly(`${numeric[3]}-${String(Number(numeric[2])).padStart(2, '0')}-${String(Number(numeric[1])).padStart(2, '0')}`);
+    const text = normalize(raw);
+    const words = Object.keys(LOOSE_MONTHS).sort((a, b) => b.length - a.length).join('|');
+    const match = text.match(new RegExp(`(?:^|\\s)(\\d{1,2})\\s+(?:de\\s+)?(${words})(?:\\s+(?:de\\s+)?(20\\d{2}))?`));
+    if (!match) return null;
+    const todayKey = getSantiagoDateKey();
+    let year = Number(match[3] || todayKey.slice(0, 4));
+    const month = LOOSE_MONTHS[match[2]];
+    let date = parseDateOnly(`${year}-${String(month).padStart(2, '0')}-${String(Number(match[1])).padStart(2, '0')}`);
+    if (!match[3] && date && date < todayAsUtcDate()) {
+        year += 1;
+        date = parseDateOnly(`${year}-${String(month).padStart(2, '0')}-${String(Number(match[1])).padStart(2, '0')}`);
+    }
+    return date;
+}
+
+function genericEventFromText({ title, context, url, location, image }, source, maxDate) {
+    if (!GENERIC_EVENT_KEYWORDS.test(`${title} ${context}`)) return null;
+    const fecha = parseLooseEventDate(context);
+    if (!fecha) return null;
+    const event = {
+        titulo: clean(title, 200),
+        descripcion: clean(context, 700),
+        ubicacion: clean(location, 200) || `${source.nombre}, Santiago`,
+        fecha,
+        fechaFin: null,
+        ...eventPrice(context),
+        imagenUrl: safeExternalUrl(image, null),
+        fuenteUrl: safeExternalUrl(url, source.url),
+        tags: inferredTags(`${title} ${context}`, ['cultural']),
+        confianza: 74,
+        advertencias: 'Extracción automática sin IA; confirmar detalles en la fuente.'
+    };
+    return event.titulo.length >= 6 && inAllowedWindow(event, maxDate) ? event : null;
+}
+
+function extractGenericHtmlEvents(html, source, maxDate) {
+    const $ = cheerio.load(html);
+    const events = [];
+    $('a[href]').each((_, element) => {
+        const link = $(element);
+        const title = clean(link.text() || link.attr('aria-label') || link.attr('title'), 200);
+        if (!title || !GENERIC_EVENT_KEYWORDS.test(title)) return;
+        let card = link.closest('article, li, [class*="event"], [class*="evento"], [class*="card"], [class*="product"]');
+        if (!card.length) card = link.parent();
+        const context = clean(card.text(), 1600);
+        const dateHint = card.find('time[datetime]').first().attr('datetime') || card.attr('data-date') || '';
+        const location = clean(card.find('[class*="location"], [class*="venue"], [class*="address"], [class*="ubicacion"]').first().text(), 200);
+        const event = genericEventFromText({
+            title,
+            context: `${dateHint} ${context}`,
+            url: link.attr('href'),
+            location,
+            image: card.find('img').first().attr('src')
+        }, source, maxDate);
+        if (event) events.push(event);
+    });
+    return events;
+}
+
+function extractRssEvents(html, source, maxDate) {
+    const $ = cheerio.load(html, { xmlMode: true });
+    const events = [];
+    $('item').slice(0, 40).each((_, item) => {
+        const node = $(item);
+        const title = clean(node.find('title').first().text(), 200);
+        const context = clean(node.find('description, content\\:encoded').first().text(), 1600);
+        const event = genericEventFromText({
+            title,
+            context,
+            url: node.find('link').first().text(),
+            location: 'Santiago',
+            image: null
+        }, source, maxDate);
+        if (event) events.push(event);
+    });
+    return events;
+}
+
 function extractDirectEvents(html, source, maxDate) {
     let events = [];
     if (source.id === 'biblioteca-nacional' || source.id === 'patrimonio-cultural') {
@@ -371,7 +462,12 @@ function extractDirectEvents(html, source, maxDate) {
     } else if (source.id === 'hoy-jugue') {
         events = extractHoyJuegueEvents(html, source, maxDate);
     }
-    return uniqueUpcomingEvents(events);
+    if (events.length === 0) {
+        events = source.tipo === 'RSS'
+            ? extractRssEvents(html, source, maxDate)
+            : extractGenericHtmlEvents(html, source, maxDate);
+    }
+    return uniqueUpcomingEvents(events, 12);
 }
 
 function flattenJsonLd(value, output = []) {
@@ -441,18 +537,18 @@ function extractJsonLdEvents(html, source, maxDate) {
 function pageTextForAi(html, source) {
     if (source.tipo === 'RSS') {
         const $ = cheerio.load(html, { xmlMode: true });
-        return $('item').slice(0, 60).map((_, item) => {
+        return $('item').slice(0, 30).map((_, item) => {
             const title = $(item).find('title').first().text();
             const link = $(item).find('link').first().text();
             const description = $(item).find('description').first().text();
             if (!/finde|panorama|gu[ií]a del ocio|qu[eé] hacer/i.test(`${title} ${link} ${description}`)) return '';
             return `${title} | ${link} | ${clean(description, 800)}`;
-        }).get().filter(Boolean).join('\n').slice(0, 18000);
+        }).get().filter(Boolean).join('\n').slice(0, 9000);
     }
 
     const $ = cheerio.load(html);
     $('script, style, noscript, nav, footer, form').remove();
-    const links = $('a[href]').slice(0, 150).map((_, element) => {
+    const links = $('a[href]').slice(0, 80).map((_, element) => {
         const label = clean($(element).text(), 180);
         if (!label) return '';
         try {
@@ -461,8 +557,8 @@ function pageTextForAi(html, source) {
             return '';
         }
     }).get().filter(Boolean).join('\n');
-    const body = clean($('main, body').first().text(), 14000);
-    return `${body}\nENLACES:\n${links}`.slice(0, 22000);
+    const body = clean($('main, body').first().text(), 7000);
+    return `${body}\nENLACES:\n${links}`.slice(0, 11000);
 }
 
 async function extractWithAi(html, source, maxDate) {
@@ -491,7 +587,7 @@ CONTENIDO:
 ${text}`;
 
     const result = await generateWithRetry({
-        model: 'gemini-2.5-flash',
+        model: GEMINI_DISCOVERY_MODEL,
         contents: prompt,
         config: {
             responseMimeType: 'application/json',
@@ -519,50 +615,63 @@ ${text}`;
 }
 
 async function persistEvents(events, source) {
-    let created = 0;
+    const candidates = new Map();
     for (const event of events) {
         if (isBlockedEvent(event)) continue;
         const key = fingerprint(event);
-        const existingIdea = await prisma.idea.findFirst({ where: { externalKey: key }, select: { id: true } });
-        if (existingIdea) continue;
-        const existing = await prisma.planSuggestion.findUnique({ where: { fingerprint: key }, select: { id: true } });
-        await prisma.planSuggestion.upsert({
-            where: { fingerprint: key },
-            create: {
-                fingerprint: key,
-                titulo: event.titulo,
-                descripcion: event.descripcion || null,
-                ubicacion: event.ubicacion || 'Santiago',
-                fecha: event.fecha,
-                fechaFin: event.fechaFin || null,
-                precio: event.precio,
-                precioEstado: event.precioEstado,
-                imagenUrl: event.imagenUrl || null,
-                fuenteId: source.id,
-                fuenteNombre: source.nombre,
-                fuenteUrl: event.fuenteUrl || source.url,
-                tags: event.tags,
-                confianza: event.confianza,
-                advertencias: event.advertencias || null
-            },
-            update: {
-                descripcion: event.descripcion || null,
-                ubicacion: event.ubicacion || 'Santiago',
-                fechaFin: event.fechaFin || null,
-                precio: event.precio,
-                precioEstado: event.precioEstado,
-                fuenteUrl: event.fuenteUrl || source.url,
-                tags: event.tags,
-                confianza: event.confianza,
-                advertencias: event.advertencias || null
-            }
-        });
-        if (!existing) created += 1;
+        if (!candidates.has(key)) candidates.set(key, event);
     }
-    return created;
+    const keys = Array.from(candidates.keys());
+    if (keys.length === 0) return 0;
+    const [ideas, suggestions] = await Promise.all([
+        prisma.idea.findMany({ where: { externalKey: { in: keys } }, select: { externalKey: true } }),
+        prisma.planSuggestion.findMany({ where: { fingerprint: { in: keys } }, select: { fingerprint: true } })
+    ]);
+    const existing = new Set([
+        ...ideas.map(item => item.externalKey),
+        ...suggestions.map(item => item.fingerprint)
+    ]);
+    const data = keys.filter(key => !existing.has(key)).map(key => {
+        const event = candidates.get(key);
+        return {
+            fingerprint: key,
+            titulo: event.titulo,
+            descripcion: event.descripcion || null,
+            ubicacion: event.ubicacion || 'Santiago',
+            fecha: event.fecha,
+            fechaFin: event.fechaFin || null,
+            precio: event.precio,
+            precioEstado: event.precioEstado,
+            imagenUrl: event.imagenUrl || null,
+            fuenteId: source.id,
+            fuenteNombre: source.nombre,
+            fuenteUrl: event.fuenteUrl || source.url,
+            tags: event.tags,
+            confianza: event.confianza,
+            advertencias: event.advertencias || null
+        };
+    });
+    if (data.length === 0) return 0;
+    const result = await prisma.planSuggestion.createMany({ data, skipDuplicates: true });
+    return result.count;
 }
 
-async function runSource(source) {
+async function runSource(source, options = {}) {
+    const previous = await prisma.discoverySource.findUnique({ where: { id: source.id } });
+    const cacheMinutes = Number(options.cacheMinutes) || DISCOVERY_CACHE_MINUTES;
+    const cacheAge = previous?.ultimaEjecucion ? Date.now() - previous.ultimaEjecucion.getTime() : Infinity;
+    if (!options.force && previous?.ultimoEstado === 'OK' && cacheAge < cacheMinutes * 60000) {
+        return {
+            sourceId: source.id,
+            nombre: source.nombre,
+            encontrados: 0,
+            nuevos: 0,
+            estado: 'CACHE',
+            cache: true,
+            iaUsada: false,
+            error: null
+        };
+    }
     const startedAt = new Date();
     await prisma.discoverySource.upsert({
         where: { id: source.id },
@@ -578,23 +687,39 @@ async function runSource(source) {
         const structured = extractJsonLdEvents(html, extractionSource, maxDate);
         let aiEvents = [];
         let aiError = null;
-        if (!DIRECT_EXTRACTION_SOURCES.has(source.id) || direct.length === 0) {
+        let aiUsed = false;
+        const baseEvents = [...direct, ...structured];
+        const aiBudget = options.aiBudget;
+        const canUseAi = baseEvents.length === 0 && DISCOVERY_AI_FALLBACK_ENABLED && ai && aiBudget?.remaining > 0;
+        if (canUseAi) {
+            aiBudget.remaining -= 1;
+            aiBudget.used += 1;
+            aiUsed = true;
             try {
                 aiEvents = await extractWithAi(html, extractionSource, maxDate);
             } catch (error) {
                 aiError = error;
             }
         }
-        const all = [...direct, ...structured, ...aiEvents];
-        if (aiError && all.length === 0) throw aiError;
+        const all = [...baseEvents, ...aiEvents];
         const created = await persistEvents(all, source);
-        const status = aiError ? 'PARCIAL' : 'OK';
-        const warning = aiError ? friendlySourceError(aiError) : null;
+        const status = aiError && all.length > 0 ? 'PARCIAL' : 'OK';
+        const warning = aiError && all.length > 0 ? friendlySourceError(aiError) : null;
         await prisma.discoverySource.update({
             where: { id: source.id },
             data: { ultimoEstado: status, ultimoError: warning }
         });
-        return { sourceId: source.id, nombre: source.nombre, encontrados: all.length, nuevos: created, estado: status, error: warning };
+        return {
+            sourceId: source.id,
+            nombre: source.nombre,
+            encontrados: all.length,
+            nuevos: created,
+            estado: status,
+            cache: false,
+            iaUsada: aiUsed,
+            iaNoDisponible: Boolean(aiError),
+            error: warning
+        };
     } catch (error) {
         const message = friendlySourceError(error);
         await prisma.discoverySource.update({
@@ -609,6 +734,9 @@ module.exports = {
     SOURCES,
     BLOCKED_EVENT_KEYWORDS,
     MAX_SAME_EVENT_SUGGESTIONS,
+    DISCOVERY_AI_FALLBACK_ENABLED,
+    MAX_AI_SOURCES_PER_RUN,
+    DISCOVERY_CACHE_MINUTES,
     eventFamilyKey,
     isBlockedEvent,
     friendlySourceError,

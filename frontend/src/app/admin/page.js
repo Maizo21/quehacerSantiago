@@ -112,7 +112,7 @@ export default function AdminPage() {
     if (selectedSources.length === 0) return;
     setRunning(true);
     setError('');
-    setMessage('Buscando eventos. Algunas fuentes pueden tardar...');
+    setMessage('Buscando eventos en modo ahorro: extracción directa y caché primero...');
     try {
       const response = await authorizedFetch('/admin/discovery/run', {
         method: 'POST',
@@ -123,9 +123,13 @@ export default function AdminPage() {
       if (!response.ok) throw new Error(data.Error || 'No se pudo ejecutar la búsqueda');
       const failures = (data.resultados || []).filter(item => item.estado === 'ERROR').length;
       const partials = (data.resultados || []).filter(item => item.estado === 'PARCIAL').length;
+      const cached = Number(data.cache || 0);
+      const aiUses = Number(data.iaUsos || 0);
       const statusSummary = [
         failures ? `${failures} fuentes fallaron` : '',
-        partials ? `${partials} respondieron parcialmente` : ''
+        partials ? `${partials} respondieron parcialmente` : '',
+        cached ? `${cached} reutilizaron caché` : '',
+        `${aiUses} consultas IA`
       ].filter(Boolean).join(' · ');
       setMessage(`${data.nuevos || 0} sugerencias nuevas. ${statusSummary || 'Todas las fuentes respondieron.'}`);
       await Promise.all([loadSuggestions(), loadSources()]);
@@ -218,6 +222,7 @@ export default function AdminPage() {
             </div>
             <p className="text-xs text-sage-dim mt-4">Se muestran como máximo 2 alternativas del mismo evento. Nexus está excluido de tus sugerencias.</p>
             <p className="text-xs text-sage-dim mt-2">El descubrimiento automático prioriza carteleras web con fechas verificables; los perfiles de Instagram ya no se consultan.</p>
+            <p className="text-xs text-sage-dim mt-2">Modo ahorro: reutiliza cada consulta durante 6 horas y Gemini queda desactivado por defecto. Las páginas sin estructura usan un extractor local de respaldo.</p>
           </section>
 
           {buckets.map(bucket => (

@@ -3,6 +3,9 @@ const { prisma } = require('../Models/ideasModels');
 const {
     SOURCES,
     MAX_SAME_EVENT_SUGGESTIONS,
+    DISCOVERY_AI_FALLBACK_ENABLED,
+    MAX_AI_SOURCES_PER_RUN,
+    DISCOVERY_CACHE_MINUTES,
     eventFamilyKey,
     friendlySourceError,
     isBlockedEvent,
@@ -35,10 +38,13 @@ exports.getSources = async (req, res) => {
     const byId = new Map(records.map(record => [record.id, record]));
     res.json(SOURCES.map(source => {
         const record = byId.get(source.id) || {};
+        const obsoleteAiError = !DISCOVERY_AI_FALLBACK_ENABLED
+            && /gemini|503|unavailable|high demand|saturad/i.test(String(record.ultimoError || ''));
         return {
             ...record,
             ...source,
-            ultimoError: record.ultimoError ? friendlySourceError({ message: record.ultimoError }) : null
+            ultimoEstado: obsoleteAiError ? null : record.ultimoEstado,
+            ultimoError: obsoleteAiError ? null : record.ultimoError ? friendlySourceError({ message: record.ultimoError }) : null
         };
     }));
 };
@@ -52,13 +58,26 @@ exports.runDiscovery = async (req, res) => {
     if (selected.length > 20) return res.status(400).json({ Error: 'Máximo 20 fuentes por búsqueda' });
 
     const results = [];
+    const aiBudget = {
+        remaining: DISCOVERY_AI_FALLBACK_ENABLED ? MAX_AI_SOURCES_PER_RUN : 0,
+        used: 0
+    };
     for (const source of selected) {
-        results.push(await runSource(source));
+        results.push(await runSource(source, {
+            aiBudget,
+            cacheMinutes: DISCOVERY_CACHE_MINUTES,
+            force: req.body.force === true
+        }));
     }
     res.json({
         resultados: results,
         nuevos: results.reduce((sum, item) => sum + item.nuevos, 0),
-        servicioIa: Boolean(process.env.GEMINI_API_KEY)
+        cache: results.filter(item => item.estado === 'CACHE').length,
+        iaUsos: aiBudget.used,
+        iaNoDisponible: results.filter(item => item.iaNoDisponible).length,
+        modoAhorro: true,
+        servicioIa: Boolean(process.env.GEMINI_API_KEY),
+        respaldoIaHabilitado: DISCOVERY_AI_FALLBACK_ENABLED
     });
 };
 
