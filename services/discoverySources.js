@@ -2,7 +2,6 @@ const cheerio = require('cheerio');
 const crypto = require('crypto');
 const sanitizeHtml = require('sanitize-html');
 const { GoogleGenAI, Type } = require('@google/genai');
-const { prisma } = require('../Models/ideasModels');
 const { getSantiagoDateKey, parseDateOnly, todayAsUtcDate, addUtcDays } = require('../lib/dateUtils');
 
 const ai = process.env.GEMINI_API_KEY
@@ -16,7 +15,6 @@ const BLOCKED_EVENT_KEYWORDS = Array.from(new Set([
 const MAX_SAME_EVENT_SUGGESTIONS = Math.max(1, Math.min(5, Number(process.env.MAX_SAME_EVENT_SUGGESTIONS) || 2));
 const DISCOVERY_AI_FALLBACK_ENABLED = /^(1|true|yes)$/i.test(process.env.DISCOVERY_AI_FALLBACK_ENABLED || 'false');
 const MAX_AI_SOURCES_PER_RUN = Math.max(0, Math.min(3, Number(process.env.MAX_AI_SOURCES_PER_RUN) || 1));
-const DISCOVERY_CACHE_MINUTES = Math.max(5, Math.min(1440, Number(process.env.DISCOVERY_CACHE_MINUTES) || 360));
 const DISCOVERY_FETCH_TIMEOUT_MS = Math.max(3000, Math.min(15000, Number(process.env.DISCOVERY_FETCH_TIMEOUT_MS) || 8000));
 const GEMINI_DISCOVERY_MODEL = process.env.GEMINI_DISCOVERY_MODEL || 'gemini-2.5-flash';
 
@@ -614,70 +612,7 @@ ${text}`;
     })).filter(item => item.titulo && !isBlockedEvent(item) && item.fecha && item.fecha <= maxDate && (item.fechaFin || item.fecha) >= todayAsUtcDate());
 }
 
-async function persistEvents(events, source) {
-    const candidates = new Map();
-    for (const event of events) {
-        if (isBlockedEvent(event)) continue;
-        const key = fingerprint(event);
-        if (!candidates.has(key)) candidates.set(key, event);
-    }
-    const keys = Array.from(candidates.keys());
-    if (keys.length === 0) return 0;
-    const [ideas, suggestions] = await Promise.all([
-        prisma.idea.findMany({ where: { externalKey: { in: keys } }, select: { externalKey: true } }),
-        prisma.planSuggestion.findMany({ where: { fingerprint: { in: keys } }, select: { fingerprint: true } })
-    ]);
-    const existing = new Set([
-        ...ideas.map(item => item.externalKey),
-        ...suggestions.map(item => item.fingerprint)
-    ]);
-    const data = keys.filter(key => !existing.has(key)).map(key => {
-        const event = candidates.get(key);
-        return {
-            fingerprint: key,
-            titulo: event.titulo,
-            descripcion: event.descripcion || null,
-            ubicacion: event.ubicacion || 'Santiago',
-            fecha: event.fecha,
-            fechaFin: event.fechaFin || null,
-            precio: event.precio,
-            precioEstado: event.precioEstado,
-            imagenUrl: event.imagenUrl || null,
-            fuenteId: source.id,
-            fuenteNombre: source.nombre,
-            fuenteUrl: event.fuenteUrl || source.url,
-            tags: event.tags,
-            confianza: event.confianza,
-            advertencias: event.advertencias || null
-        };
-    });
-    if (data.length === 0) return 0;
-    const result = await prisma.planSuggestion.createMany({ data, skipDuplicates: true });
-    return result.count;
-}
-
 async function runSource(source, options = {}) {
-    const previous = await prisma.discoverySource.findUnique({ where: { id: source.id } });
-    const cacheMinutes = Number(options.cacheMinutes) || DISCOVERY_CACHE_MINUTES;
-    const cacheAge = previous?.ultimaEjecucion ? Date.now() - previous.ultimaEjecucion.getTime() : Infinity;
-    if (!options.force && previous?.ultimoEstado === 'OK' && cacheAge < cacheMinutes * 60000) {
-        return {
-            sourceId: source.id,
-            nombre: source.nombre,
-            encontrados: 0,
-            nuevos: 0,
-            estado: 'CACHE',
-            cache: true,
-            iaUsada: false,
-            error: null
-        };
-    }
-    const startedAt = new Date();
-    await prisma.discoverySource.upsert({
-        where: { id: source.id },
-        create: { ...source, ultimaEjecucion: startedAt, ultimoEstado: 'EJECUTANDO' },
-        update: { nombre: source.nombre, url: source.url, tipo: source.tipo, ultimaEjecucion: startedAt, ultimoEstado: 'EJECUTANDO', ultimoError: null }
-    });
     try {
         const fetched = await fetchSource(source);
         const extractionSource = { ...source, url: fetched.url };
@@ -701,32 +636,23 @@ async function runSource(source, options = {}) {
                 aiError = error;
             }
         }
-        const all = [...baseEvents, ...aiEvents];
-        const created = await persistEvents(all, source);
+        const all = uniqueUpcomingEvents([...baseEvents, ...aiEvents], 20);
         const status = aiError && all.length > 0 ? 'PARCIAL' : 'OK';
         const warning = aiError && all.length > 0 ? friendlySourceError(aiError) : null;
-        await prisma.discoverySource.update({
-            where: { id: source.id },
-            data: { ultimoEstado: status, ultimoError: warning }
-        });
         return {
             sourceId: source.id,
             nombre: source.nombre,
             encontrados: all.length,
-            nuevos: created,
+            nuevos: all.length,
             estado: status,
-            cache: false,
             iaUsada: aiUsed,
             iaNoDisponible: Boolean(aiError),
-            error: warning
+            error: warning,
+            events: all
         };
     } catch (error) {
         const message = friendlySourceError(error);
-        await prisma.discoverySource.update({
-            where: { id: source.id },
-            data: { ultimoEstado: 'ERROR', ultimoError: message }
-        }).catch(() => {});
-        return { sourceId: source.id, nombre: source.nombre, encontrados: 0, nuevos: 0, estado: 'ERROR', error: message };
+        return { sourceId: source.id, nombre: source.nombre, encontrados: 0, nuevos: 0, estado: 'ERROR', error: message, events: [] };
     }
 }
 
@@ -736,7 +662,7 @@ module.exports = {
     MAX_SAME_EVENT_SUGGESTIONS,
     DISCOVERY_AI_FALLBACK_ENABLED,
     MAX_AI_SOURCES_PER_RUN,
-    DISCOVERY_CACHE_MINUTES,
+    fingerprint,
     eventFamilyKey,
     isBlockedEvent,
     friendlySourceError,

@@ -7,6 +7,10 @@ import EditIdeaModal from '@/components/EditIdeaModal';
 import { dateKey, formatEventRange, todayInSantiago } from '@/lib/eventDates';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const DISMISSED_SUGGESTIONS_KEY = 'quehacerSantiago:dismissed-suggestions:v1';
+const DISCOVERY_RESULTS_KEY = 'quehacerSantiago:discovery-results:v1';
+const DISCOVERY_CACHE_MS = 6 * 60 * 60 * 1000;
+const MAX_DISMISSED_SUGGESTIONS = 500;
 const RECOMMENDED_SOURCES = [
   'biblioteca-santiago',
   'biblioteca-nacional',
@@ -36,6 +40,67 @@ function priceLabel(item) {
   return 'Precio no informado';
 }
 
+function suggestionKey(item) {
+  return item.fingerprint || item.id;
+}
+
+function readDismissedSuggestions() {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(DISMISSED_SUGGESTIONS_KEY) || '[]');
+    return new Set(Array.isArray(stored) ? stored.filter(value => typeof value === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeDismissedSuggestions(values) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(
+      DISMISSED_SUGGESTIONS_KEY,
+      JSON.stringify(Array.from(values).slice(-MAX_DISMISSED_SUGGESTIONS))
+    );
+  } catch {}
+}
+
+function readLocalDiscovery() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(DISCOVERY_RESULTS_KEY) || 'null');
+    if (!stored || !Array.isArray(stored.suggestions) || !Number.isFinite(stored.savedAt)) return null;
+    if (Date.now() - stored.savedAt > DISCOVERY_CACHE_MS) {
+      window.localStorage.removeItem(DISCOVERY_RESULTS_KEY);
+      return null;
+    }
+    return stored;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalDiscovery(suggestions, resultados = [], savedAt = Date.now(), sourceIds = []) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(DISCOVERY_RESULTS_KEY, JSON.stringify({
+      savedAt,
+      suggestions: suggestions.slice(0, 300),
+      resultados,
+      sourceIds
+    }));
+  } catch {}
+}
+
+function visibleLocalSuggestions() {
+  const stored = readLocalDiscovery();
+  const dismissed = readDismissedSuggestions();
+  return {
+    stored,
+    dismissed,
+    suggestions: (stored?.suggestions || []).filter(item => !dismissed.has(suggestionKey(item)))
+  };
+}
+
 export default function AdminPage() {
   const { getToken } = useAuth();
   const { isAdmin, loading: authLoading } = useAuthorized();
@@ -43,6 +108,7 @@ export default function AdminPage() {
   const [sources, setSources] = useState([]);
   const [selectedSources, setSelectedSources] = useState(RECOMMENDED_SOURCES);
   const [suggestions, setSuggestions] = useState([]);
+  const [dismissedCount, setDismissedCount] = useState(0);
   const [ideas, setIdeas] = useState([]);
   const [planStatus, setPlanStatus] = useState('expired');
   const [editing, setEditing] = useState(null);
@@ -59,18 +125,21 @@ export default function AdminPage() {
     });
   }, [getToken]);
 
-  const loadSuggestions = useCallback(async () => {
-    const response = await authorizedFetch('/admin/discovery/suggestions?estado=PENDIENTE');
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.Error || 'No se pudieron cargar las sugerencias');
-    setSuggestions(data.suggestions || []);
-  }, [authorizedFetch]);
+  const loadSuggestions = useCallback(() => {
+    const { suggestions: localSuggestions, dismissed } = visibleLocalSuggestions();
+    setDismissedCount(dismissed.size);
+    setSuggestions(localSuggestions);
+  }, []);
 
   const loadSources = useCallback(async () => {
     const response = await authorizedFetch('/admin/discovery/sources');
     const data = await response.json();
     if (!response.ok) throw new Error(data.Error || 'No se pudieron cargar las fuentes');
-    setSources(data || []);
+    const statusById = new Map((readLocalDiscovery()?.resultados || []).map(item => [item.sourceId, item]));
+    setSources((data || []).map(source => {
+      const status = statusById.get(source.id);
+      return { ...source, ultimoEstado: status?.estado || null, ultimoError: status?.error || null };
+    }));
   }, [authorizedFetch]);
 
   const loadIdeas = useCallback(async () => {
@@ -90,7 +159,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    Promise.all([loadSources(), loadSuggestions()]).catch(err => setError(err.message));
+    loadSuggestions();
+    loadSources().catch(err => setError(err.message));
   }, [isAdmin, loadSources, loadSuggestions]);
 
   useEffect(() => {
@@ -110,9 +180,18 @@ export default function AdminPage() {
 
   const runDiscovery = async () => {
     if (selectedSources.length === 0) return;
+    const local = visibleLocalSuggestions();
+    const sameSources = local.stored
+      && [...(local.stored.sourceIds || [])].sort().join('|') === [...selectedSources].sort().join('|');
+    if (sameSources) {
+      setSuggestions(local.suggestions);
+      setDismissedCount(local.dismissed.size);
+      setMessage(`${local.suggestions.length} sugerencias recuperadas del navegador. No se consultó Railway.`);
+      return;
+    }
     setRunning(true);
     setError('');
-    setMessage('Buscando eventos en modo ahorro: extracción directa y caché primero...');
+    setMessage('Consultando carteleras. Los resultados permanecerán únicamente en este navegador...');
     try {
       const response = await authorizedFetch('/admin/discovery/run', {
         method: 'POST',
@@ -123,16 +202,23 @@ export default function AdminPage() {
       if (!response.ok) throw new Error(data.Error || 'No se pudo ejecutar la búsqueda');
       const failures = (data.resultados || []).filter(item => item.estado === 'ERROR').length;
       const partials = (data.resultados || []).filter(item => item.estado === 'PARCIAL').length;
-      const cached = Number(data.cache || 0);
       const aiUses = Number(data.iaUsos || 0);
+      const discovered = data.suggestions || [];
+      const dismissed = readDismissedSuggestions();
+      writeLocalDiscovery(discovered, data.resultados || [], Date.now(), selectedSources);
+      setSuggestions(discovered.filter(item => !dismissed.has(suggestionKey(item))));
+      setDismissedCount(dismissed.size);
+      const statusById = new Map((data.resultados || []).map(item => [item.sourceId, item]));
+      setSources(current => current.map(source => {
+        const status = statusById.get(source.id);
+        return { ...source, ultimoEstado: status?.estado || null, ultimoError: status?.error || null };
+      }));
       const statusSummary = [
         failures ? `${failures} fuentes fallaron` : '',
         partials ? `${partials} respondieron parcialmente` : '',
-        cached ? `${cached} reutilizaron caché` : '',
         `${aiUses} consultas IA`
       ].filter(Boolean).join(' · ');
       setMessage(`${data.nuevos || 0} sugerencias nuevas. ${statusSummary || 'Todas las fuentes respondieron.'}`);
-      await Promise.all([loadSuggestions(), loadSources()]);
     } catch (err) {
       setError(err.message);
       setMessage('');
@@ -143,14 +229,64 @@ export default function AdminPage() {
 
   const suggestionAction = async (id, action) => {
     setError('');
+    if (action === 'reject') {
+      const item = suggestions.find(suggestion => suggestion.id === id);
+      if (!item) return;
+      const dismissed = readDismissedSuggestions();
+      dismissed.add(suggestionKey(item));
+      writeDismissedSuggestions(dismissed);
+      setDismissedCount(Math.min(dismissed.size, MAX_DISMISSED_SUGGESTIONS));
+      setSuggestions(current => current.filter(suggestion => suggestion.id !== id));
+      return;
+    }
     try {
-      const response = await authorizedFetch(`/admin/discovery/suggestions/${id}/${action}`, { method: 'POST' });
+      const item = suggestions.find(suggestion => suggestion.id === id);
+      if (!item) return;
+      const response = await authorizedFetch('/admin/discovery/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.Error || 'No se pudo actualizar la sugerencia');
-      setSuggestions(current => current.filter(item => item.id !== id));
+      setSuggestions(current => current.filter(suggestion => suggestion.id !== id));
+      const stored = readLocalDiscovery();
+      if (stored) {
+        writeLocalDiscovery(
+          stored.suggestions.filter(suggestion => suggestionKey(suggestion) !== suggestionKey(item)),
+          stored.resultados || [],
+          stored.savedAt,
+          stored.sourceIds || []
+        );
+      }
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  const restoreDismissedSuggestions = async () => {
+    try {
+      window.localStorage.removeItem(DISMISSED_SUGGESTIONS_KEY);
+    } catch {}
+    setDismissedCount(0);
+    setError('');
+    try {
+      await loadSuggestions();
+      setMessage('Sugerencias ocultadas restauradas en este navegador.');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const clearLocalDiscovery = () => {
+    try {
+      window.localStorage.removeItem(DISCOVERY_RESULTS_KEY);
+      window.localStorage.removeItem(DISMISSED_SUGGESTIONS_KEY);
+    } catch {}
+    setSuggestions([]);
+    setDismissedCount(0);
+    setSources(current => current.map(source => ({ ...source, ultimoEstado: null, ultimoError: null })));
+    setMessage('Resultados locales eliminados. La próxima búsqueda volverá a consultar las fuentes.');
   };
 
   const deleteIdea = async idea => {
@@ -196,7 +332,7 @@ export default function AdminPage() {
             <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
               <div>
                 <h2 className="font-bold text-light text-lg">Fuentes a consultar</h2>
-                <p className="text-sm text-sage-dim">Los resultados quedan pendientes hasta que los apruebes.</p>
+                <p className="text-sm text-sage-dim">Los resultados permanecen en este navegador hasta que los apruebes.</p>
               </div>
               <button onClick={runDiscovery} disabled={running || selectedSources.length === 0} className="bg-accent hover:bg-accent-light text-white px-5 py-2.5 rounded-lg disabled:opacity-50 cursor-pointer">
                 {running ? 'Buscando...' : 'Buscar nuevos eventos'}
@@ -222,7 +358,18 @@ export default function AdminPage() {
             </div>
             <p className="text-xs text-sage-dim mt-4">Se muestran como máximo 2 alternativas del mismo evento. Nexus está excluido de tus sugerencias.</p>
             <p className="text-xs text-sage-dim mt-2">El descubrimiento automático prioriza carteleras web con fechas verificables; los perfiles de Instagram ya no se consultan.</p>
-            <p className="text-xs text-sage-dim mt-2">Modo ahorro: reutiliza cada consulta durante 6 horas y Gemini queda desactivado por defecto. Las páginas sin estructura usan un extractor local de respaldo.</p>
+            <p className="text-xs text-sage-dim mt-2">Modo ahorro: los candidatos se guardan localmente durante 6 horas. El scraping no escribe sugerencias ni estados de fuentes en PostgreSQL.</p>
+            <div className="flex flex-wrap items-center gap-3 mt-3">
+              <p className="text-xs text-sage-dim">“Ocultar” sólo modifica este navegador: no envía solicitudes ni escribe en la base de datos.</p>
+              {dismissedCount > 0 && (
+                <button type="button" onClick={restoreDismissedSuggestions} className="text-xs text-sage hover:underline cursor-pointer">
+                  Restaurar {dismissedCount} ocultadas
+                </button>
+              )}
+              <button type="button" onClick={clearLocalDiscovery} className="text-xs text-sage hover:underline cursor-pointer">
+                Limpiar resultados locales
+              </button>
+            </div>
           </section>
 
           {buckets.map(bucket => (
@@ -251,7 +398,7 @@ export default function AdminPage() {
                       <div className="mt-auto flex items-center justify-between gap-3 pt-3 border-t border-border">
                         <a href={item.fuenteUrl} target="_blank" rel="noreferrer" className="text-xs text-sage hover:underline truncate">{item.fuenteNombre}</a>
                         <div className="flex gap-2">
-                          <button onClick={() => suggestionAction(item.id, 'reject')} className="text-sm px-3 py-2 rounded-lg bg-surface text-sage-dim hover:text-red-300 cursor-pointer">Rechazar</button>
+                          <button onClick={() => suggestionAction(item.id, 'reject')} className="text-sm px-3 py-2 rounded-lg bg-surface text-sage-dim hover:text-red-300 cursor-pointer">Ocultar</button>
                           <button onClick={() => suggestionAction(item.id, 'approve')} className="text-sm px-3 py-2 rounded-lg bg-accent text-white hover:bg-accent-light cursor-pointer">Aprobar</button>
                         </div>
                       </div>

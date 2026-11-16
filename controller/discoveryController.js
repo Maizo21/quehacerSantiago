@@ -5,25 +5,14 @@ const {
     MAX_SAME_EVENT_SUGGESTIONS,
     DISCOVERY_AI_FALLBACK_ENABLED,
     MAX_AI_SOURCES_PER_RUN,
-    DISCOVERY_CACHE_MINUTES,
+    fingerprint,
     eventFamilyKey,
-    friendlySourceError,
     isBlockedEvent,
     runSource
 } = require('../services/discoverySources');
-const { todayAsUtcDate } = require('../lib/dateUtils');
+const { parseDateOnly, todayAsUtcDate } = require('../lib/dateUtils');
 
 const clean = value => sanitizeHtml(String(value || ''), { allowedTags: [], allowedAttributes: {} }).trim();
-const DISABLED_SUGGESTION_SOURCES = new Set([
-    'freljord',
-    'instagram-enroque',
-    'instagram-demente',
-    'shivano',
-    'demente-games',
-    'entrejuegos',
-    'casa-de-juegos',
-    'la-tercera-stories'
-]);
 
 function serializeSuggestion(item) {
     return {
@@ -33,22 +22,18 @@ function serializeSuggestion(item) {
     };
 }
 
-exports.getSources = async (req, res) => {
-    const records = await prisma.discoverySource.findMany();
-    const byId = new Map(records.map(record => [record.id, record]));
-    res.json(SOURCES.map(source => {
-        const record = byId.get(source.id) || {};
-        const obsoleteAiError = !DISCOVERY_AI_FALLBACK_ENABLED
-            && /gemini|503|unavailable|high demand|saturad/i.test(String(record.ultimoError || ''));
-        return {
-            ...record,
-            ...source,
-            ultimoEstado: obsoleteAiError ? null : record.ultimoEstado,
-            ultimoError: obsoleteAiError ? null : record.ultimoError ? friendlySourceError({ message: record.ultimoError }) : null
-        };
-    }));
-};
+function safeHttpUrl(value) {
+    try {
+        const url = new URL(String(value || ''));
+        return ['http:', 'https:'].includes(url.protocol) ? url.toString() : null;
+    } catch {
+        return null;
+    }
+}
 
+exports.getSources = async (req, res) => {
+    res.json(SOURCES);
+};
 exports.runDiscovery = async (req, res) => {
     const requested = Array.isArray(req.body.sourceIds) ? req.body.sourceIds.map(clean) : [];
     const selected = requested.length > 0
@@ -63,16 +48,34 @@ exports.runDiscovery = async (req, res) => {
         used: 0
     };
     for (const source of selected) {
-        results.push(await runSource(source, {
-            aiBudget,
-            cacheMinutes: DISCOVERY_CACHE_MINUTES,
-            force: req.body.force === true
-        }));
+        results.push(await runSource(source, { aiBudget }));
     }
+    const familyCounts = new Map();
+    const seen = new Set();
+    const suggestions = [];
+    for (const result of results) {
+        for (const event of result.events || []) {
+            if (isBlockedEvent(event)) continue;
+            const key = fingerprint(event);
+            const family = eventFamilyKey(event.titulo);
+            const familyCount = familyCounts.get(family) || 0;
+            if (seen.has(key) || familyCount >= MAX_SAME_EVENT_SUGGESTIONS) continue;
+            seen.add(key);
+            familyCounts.set(family, familyCount + 1);
+            suggestions.push(serializeSuggestion({
+                ...event,
+                id: key,
+                fingerprint: key,
+                fuenteId: result.sourceId,
+                fuenteNombre: result.nombre
+            }));
+        }
+    }
+    const resultSummary = results.map(({ events, ...result }) => result);
     res.json({
-        resultados: results,
-        nuevos: results.reduce((sum, item) => sum + item.nuevos, 0),
-        cache: results.filter(item => item.estado === 'CACHE').length,
+        resultados: resultSummary,
+        suggestions,
+        nuevos: suggestions.length,
         iaUsos: aiBudget.used,
         iaNoDisponible: results.filter(item => item.iaNoDisponible).length,
         modoAhorro: true,
@@ -81,43 +84,52 @@ exports.runDiscovery = async (req, res) => {
     });
 };
 
-exports.getSuggestions = async (req, res) => {
-    const estado = clean(req.query.estado || 'PENDIENTE').toUpperCase();
-    const where = { estado };
-    if (estado === 'PENDIENTE') where.fecha = { gte: todayAsUtcDate() };
-    const candidates = await prisma.planSuggestion.findMany({
-        where,
-        orderBy: [{ fecha: 'asc' }, { confianza: 'desc' }],
-        take: 500
-    });
-    const familyCounts = new Map();
-    const suggestions = candidates.filter(item => {
-        if (DISABLED_SUGGESTION_SOURCES.has(item.fuenteId)) return false;
-        if (isBlockedEvent(item)) return false;
-        const family = eventFamilyKey(item.titulo);
-        const count = familyCounts.get(family) || 0;
-        if (count >= MAX_SAME_EVENT_SUGGESTIONS) return false;
-        familyCounts.set(family, count + 1);
-        return true;
-    });
-    res.json({ suggestions: suggestions.map(serializeSuggestion), total: suggestions.length });
-};
-
-exports.approveSuggestion = async (req, res) => {
-    const suggestion = await prisma.planSuggestion.findUnique({ where: { id: req.params.id } });
-    if (!suggestion) return res.status(404).json({ Error: 'Sugerencia no encontrada' });
-    if (suggestion.estado === 'APROBADA' && suggestion.ideaId) {
-        return res.status(409).json({ Error: 'La sugerencia ya fue aprobada' });
+exports.approveLocalSuggestion = async (req, res) => {
+    const fecha = parseDateOnly(req.body.fecha);
+    const fechaFin = parseDateOnly(req.body.fechaFin);
+    const suggestion = {
+        titulo: clean(req.body.titulo).slice(0, 200),
+        descripcion: clean(req.body.descripcion).slice(0, 1000) || null,
+        ubicacion: clean(req.body.ubicacion).slice(0, 200) || 'Santiago',
+        fecha,
+        fechaFin,
+        precio: Math.max(0, Math.round(Number(req.body.precio) || 0)),
+        precioEstado: ['GRATIS', 'PAGADO', 'NO_INFORMADO'].includes(req.body.precioEstado)
+            ? req.body.precioEstado
+            : 'NO_INFORMADO',
+        imagenUrl: safeHttpUrl(req.body.imagenUrl),
+        fuenteNombre: clean(req.body.fuenteNombre).slice(0, 120) || 'Descubrimiento automático',
+        fuenteUrl: safeHttpUrl(req.body.fuenteUrl),
+        tags: Array.from(new Set(
+            (Array.isArray(req.body.tags) ? req.body.tags : [])
+                .map(tag => clean(tag).toLowerCase().slice(0, 30))
+                .filter(Boolean)
+        )).slice(0, 5)
+    };
+    if (!suggestion.titulo || !suggestion.fecha || !suggestion.fuenteUrl) {
+        return res.status(400).json({ Error: 'La sugerencia no contiene título, fecha o fuente válidos' });
     }
+    if ((suggestion.fechaFin || suggestion.fecha) < todayAsUtcDate()) {
+        return res.status(400).json({ Error: 'El evento ya finalizó' });
+    }
+    if (suggestion.fechaFin && suggestion.fechaFin < suggestion.fecha) {
+        return res.status(400).json({ Error: 'El rango de fechas no es válido' });
+    }
+    if (isBlockedEvent(suggestion)) {
+        return res.status(400).json({ Error: 'El evento está excluido de las sugerencias' });
+    }
+    const externalKey = fingerprint(suggestion);
+    const existing = await prisma.idea.findFirst({ where: { externalKey } });
+    if (existing) return res.status(200).json(existing);
 
     const tagNames = suggestion.tags.length > 0 ? suggestion.tags : ['panorama'];
-    const result = await prisma.$transaction(async tx => {
+    const idea = await prisma.$transaction(async tx => {
         const tagRecords = await Promise.all(tagNames.map(nombre => tx.tag.upsert({
             where: { nombre },
             update: {},
             create: { nombre }
         })));
-        const idea = await tx.idea.create({
+        return tx.idea.create({
             data: {
                 titulo: suggestion.titulo,
                 descripcion: suggestion.descripcion,
@@ -129,23 +141,11 @@ exports.approveSuggestion = async (req, res) => {
                 precioEstado: suggestion.precioEstado,
                 fuenteNombre: suggestion.fuenteNombre,
                 fuenteUrl: suggestion.fuenteUrl,
-                externalKey: suggestion.fingerprint,
+                externalKey,
                 creadoPor: req.userName || req.userEmail,
                 tags: { create: tagRecords.map(tag => ({ tagId: tag.id })) }
             }
         });
-        await tx.planSuggestion.update({
-            where: { id: suggestion.id },
-            data: { estado: 'APROBADA', ideaId: idea.id }
-        });
-        return idea;
     });
-    res.status(201).json(result);
-};
-
-exports.rejectSuggestion = async (req, res) => {
-    const suggestion = await prisma.planSuggestion.findUnique({ where: { id: req.params.id } });
-    if (!suggestion) return res.status(404).json({ Error: 'Sugerencia no encontrada' });
-    await prisma.planSuggestion.update({ where: { id: suggestion.id }, data: { estado: 'RECHAZADA' } });
-    res.json({ Mensaje: 'Sugerencia rechazada' });
+    res.status(201).json(idea);
 };

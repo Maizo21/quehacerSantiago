@@ -145,8 +145,9 @@ curl -X GET "http://quehacersantiago-production.up.railway.app/ideas?id=1"
 
 - Los endpoints públicos ocultan automáticamente los eventos cuya fecha final (o fecha inicial) ya pasó en `America/Santiago`.
 - Los planes sin fecha se consideran permanentes y siguen visibles.
-- `/admin` permite revisar planes activos, vencidos y sin fecha, además de ejecutar búsquedas de eventos y aprobar o rechazar candidatos.
-- El descubrimiento usa extracción directa, datos JSON-LD y un extractor HTML local antes de considerar IA. Los resultados de cada fuente se reutilizan durante 6 horas y las inserciones nuevas se agrupan para reducir conexiones y escrituras en la base de datos.
-- Gemini está desactivado por defecto. Para habilitarlo como último respaldo, usa `DISCOVERY_AI_FALLBACK_ENABLED=true`; aun así, `MAX_AI_SOURCES_PER_RUN=1` limita el máximo de fuentes procesadas con IA por búsqueda. `DISCOVERY_CACHE_MINUTES`, `DISCOVERY_FETCH_TIMEOUT_MS` y `GEMINI_DISCOVERY_MODEL` permiten ajustar el comportamiento.
+- `/admin` permite revisar planes activos, vencidos y sin fecha, además de ejecutar búsquedas de eventos y aprobar u ocultar candidatos.
+- El descubrimiento usa extracción directa, datos JSON-LD y un extractor HTML local antes de considerar IA. El backend devuelve los candidatos en la respuesta y no los guarda ni registra estados de fuentes en PostgreSQL.
+- Los candidatos se conservan durante 6 horas únicamente en `localStorage`. **Ocultar** no hace solicitudes; **Aprobar** es la única acción que crea un plan y escribe sus etiquetas en una transacción.
+- Gemini está desactivado por defecto. Para habilitarlo como último respaldo, usa `DISCOVERY_AI_FALLBACK_ENABLED=true`; aun así, `MAX_AI_SOURCES_PER_RUN=1` limita el máximo de fuentes procesadas con IA por búsqueda. `DISCOVERY_FETCH_TIMEOUT_MS` y `GEMINI_DISCOVERY_MODEL` permiten ajustar el comportamiento.
 - Las publicaciones de Instagram que no sean accesibles automáticamente se pueden procesar desde **Importar desde una URL** al crear un plan.
 - En producción, `npm start` inicia directamente el servidor. Ejecuta `npm run db:push` únicamente cuando cambie `prisma/schema.prisma`, idealmente como comando previo al despliegue de Railway y no en cada reinicio del contenedor.
