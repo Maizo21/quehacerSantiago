@@ -8,9 +8,10 @@ import { dateKey, formatEventRange, todayInSantiago } from '@/lib/eventDates';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const DISMISSED_SUGGESTIONS_KEY = 'quehacerSantiago:dismissed-suggestions:v1';
-const DISCOVERY_RESULTS_KEY = 'quehacerSantiago:discovery-results:v1';
+const DISCOVERY_RESULTS_KEY = 'quehacerSantiago:discovery-results:v3';
 const DISCOVERY_CACHE_MS = 6 * 60 * 60 * 1000;
 const MAX_DISMISSED_SUGGESTIONS = 500;
+const DISCOVERY_EXTENSION_CHANNEL = 'quehacer-santiago-local-discovery-v1';
 const RECOMMENDED_SOURCES = [
   'biblioteca-santiago',
   'biblioteca-nacional',
@@ -101,6 +102,41 @@ function visibleLocalSuggestions() {
   };
 }
 
+function extensionRequest(type, payload = {}, { timeout = 3000, onProgress } = {}) {
+  if (typeof window === 'undefined') return Promise.reject(new Error('El navegador no está disponible'));
+  return new Promise((resolve, reject) => {
+    const requestId = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('message', handleMessage);
+    };
+    const handleMessage = event => {
+      const response = event.data;
+      if (event.source !== window || event.origin !== window.location.origin) return;
+      if (response?.channel !== DISCOVERY_EXTENSION_CHANNEL || response.direction !== 'extension-to-page' || response.requestId !== requestId) return;
+      if (response.progress) {
+        onProgress?.(response);
+        return;
+      }
+      cleanup();
+      if (!response.ok) reject(new Error(response.error || 'El recolector local no pudo completar la operación'));
+      else resolve(response);
+    };
+    const timer = window.setTimeout(() => {
+      cleanup();
+      reject(new Error('No se detectó la extensión del recolector local. Instálala o recárgala y luego actualiza esta página.'));
+    }, timeout);
+    window.addEventListener('message', handleMessage);
+    window.postMessage({
+      channel: DISCOVERY_EXTENSION_CHANNEL,
+      direction: 'page-to-extension',
+      requestId,
+      type,
+      ...payload
+    }, window.location.origin);
+  });
+}
+
 export default function AdminPage() {
   const { getToken } = useAuth();
   const { isAdmin, loading: authLoading } = useAuthorized();
@@ -116,6 +152,8 @@ export default function AdminPage() {
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [extensionStatus, setExtensionStatus] = useState('checking');
+  const [extensionVersion, setExtensionVersion] = useState('');
 
   const authorizedFetch = useCallback(async (path, options = {}) => {
     const token = await getToken();
@@ -132,15 +170,18 @@ export default function AdminPage() {
   }, []);
 
   const loadSources = useCallback(async () => {
-    const response = await authorizedFetch('/admin/discovery/sources');
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.Error || 'No se pudieron cargar las fuentes');
+    setExtensionStatus('checking');
+    const ping = await extensionRequest('PING');
+    const response = await extensionRequest('LIST_SOURCES');
+    const data = response.sources || [];
     const statusById = new Map((readLocalDiscovery()?.resultados || []).map(item => [item.sourceId, item]));
     setSources((data || []).map(source => {
       const status = statusById.get(source.id);
       return { ...source, ultimoEstado: status?.estado || null, ultimoError: status?.error || null };
     }));
-  }, [authorizedFetch]);
+    setExtensionVersion(ping.version || '');
+    setExtensionStatus('ready');
+  }, []);
 
   const loadIdeas = useCallback(async () => {
     setLoading(true);
@@ -160,7 +201,10 @@ export default function AdminPage() {
   useEffect(() => {
     if (!isAdmin) return;
     loadSuggestions();
-    loadSources().catch(err => setError(err.message));
+    loadSources().catch(err => {
+      setExtensionStatus('missing');
+      setError(err.message);
+    });
   }, [isAdmin, loadSources, loadSuggestions]);
 
   useEffect(() => {
@@ -191,15 +235,13 @@ export default function AdminPage() {
     }
     setRunning(true);
     setError('');
-    setMessage('Consultando carteleras. Los resultados permanecerán únicamente en este navegador...');
+    setMessage('El recolector local está consultando las carteleras desde este navegador...');
     try {
-      const response = await authorizedFetch('/admin/discovery/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceIds: selectedSources })
+      const extensionResponse = await extensionRequest('RUN_DISCOVERY', { sourceIds: selectedSources }, {
+        timeout: 8 * 60 * 1000,
+        onProgress: progress => setMessage(`Consultando ${progress.sourceName} (${progress.completed + 1} de ${progress.total}) desde tu navegador...`)
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.Error || 'No se pudo ejecutar la búsqueda');
+      const data = extensionResponse.result || {};
       const failures = (data.resultados || []).filter(item => item.estado === 'ERROR').length;
       const partials = (data.resultados || []).filter(item => item.estado === 'PARCIAL').length;
       const aiUses = Number(data.iaUsos || 0);
@@ -216,7 +258,8 @@ export default function AdminPage() {
       const statusSummary = [
         failures ? `${failures} fuentes fallaron` : '',
         partials ? `${partials} respondieron parcialmente` : '',
-        `${aiUses} consultas IA`
+        `${aiUses} consultas IA`,
+        '0 consultas de scraping a Railway'
       ].filter(Boolean).join(' · ');
       setMessage(`${data.nuevos || 0} sugerencias nuevas. ${statusSummary || 'Todas las fuentes respondieron.'}`);
     } catch (err) {
@@ -334,9 +377,19 @@ export default function AdminPage() {
                 <h2 className="font-bold text-light text-lg">Fuentes a consultar</h2>
                 <p className="text-sm text-sage-dim">Los resultados permanecen en este navegador hasta que los apruebes.</p>
               </div>
-              <button onClick={runDiscovery} disabled={running || selectedSources.length === 0} className="bg-accent hover:bg-accent-light text-white px-5 py-2.5 rounded-lg disabled:opacity-50 cursor-pointer">
+              <button onClick={runDiscovery} disabled={running || selectedSources.length === 0 || extensionStatus !== 'ready'} className="bg-accent hover:bg-accent-light text-white px-5 py-2.5 rounded-lg disabled:opacity-50 cursor-pointer">
                 {running ? 'Buscando...' : 'Buscar nuevos eventos'}
               </button>
+            </div>
+            <div className={`mb-4 rounded-lg border px-3 py-2 text-sm ${extensionStatus === 'ready' ? 'border-sage/30 bg-sage/10 text-sage' : extensionStatus === 'missing' ? 'border-amber-700/50 bg-amber-900/20 text-amber-200' : 'border-border bg-surface/50 text-sage-dim'}`}>
+              {extensionStatus === 'ready' ? (
+                <>Recolector local conectado{extensionVersion ? ` · versión ${extensionVersion}` : ''}. El scraping no utiliza Railway.</>
+              ) : extensionStatus === 'missing' ? (
+                <span>
+                  Recolector local no detectado. Instala la carpeta <code>browser-extension</code>, recarga esta página y luego{' '}
+                  <button type="button" onClick={() => { setError(''); loadSources().catch(err => { setExtensionStatus('missing'); setError(err.message); }); }} className="underline cursor-pointer">verifica nuevamente</button>.
+                </span>
+              ) : 'Buscando el recolector local...'}
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {sources.map(source => (
@@ -358,7 +411,7 @@ export default function AdminPage() {
             </div>
             <p className="text-xs text-sage-dim mt-4">Se muestran como máximo 2 alternativas del mismo evento. Nexus está excluido de tus sugerencias.</p>
             <p className="text-xs text-sage-dim mt-2">El descubrimiento automático prioriza carteleras web con fechas verificables; los perfiles de Instagram ya no se consultan.</p>
-            <p className="text-xs text-sage-dim mt-2">Modo ahorro: los candidatos se guardan localmente durante 6 horas. El scraping no escribe sugerencias ni estados de fuentes en PostgreSQL.</p>
+            <p className="text-xs text-sage-dim mt-2">Modo local: la extensión descarga y procesa las fuentes en este computador. Los candidatos se guardan durante 6 horas y el scraping no llega a Railway ni a PostgreSQL.</p>
             <div className="flex flex-wrap items-center gap-3 mt-3">
               <p className="text-xs text-sage-dim">“Ocultar” sólo modifica este navegador: no envía solicitudes ni escribe en la base de datos.</p>
               {dismissedCount > 0 && (

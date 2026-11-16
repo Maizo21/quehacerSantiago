@@ -33,7 +33,18 @@ const SOURCES = [
     { id: 'bastion-goblin', nombre: 'Bastión Goblin', tipo: 'WEB', url: 'https://bastiongoblin.com/pages/torneos' },
     { id: 'area-52', nombre: 'Área 52', tipo: 'WEB', url: 'https://area52.cl/collections/eventos' },
     { id: 'enroque', nombre: 'Enroque Juegos de Mesa', tipo: 'WEB', url: 'https://juegosenroque.cl/' },
-    { id: 'magicsur', nombre: 'MagicSur · torneos de cartas', tipo: 'WEB', url: 'https://www.cartasmagicsur.cl/torneos' }
+    { id: 'magicsur', nombre: 'MagicSur · torneos de cartas', tipo: 'WEB', url: 'https://www.cartasmagicsur.cl/torneos' },
+    { id: 'matucana-100', nombre: 'Matucana 100', tipo: 'WEB', url: 'https://www.m100.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Matucana 100, Estación Central', tags: ['cultural'] },
+    { id: 'mnba', nombre: 'Museo Nacional de Bellas Artes', tipo: 'WEB', url: 'https://www.mnba.gob.cl/cartelera', extractor: 'HERITAGE', ubicacion: 'Museo Nacional de Bellas Artes, Santiago', gratis: true, tags: ['arte', 'cultural', 'gratis'] },
+    { id: 'mac', nombre: 'Museo de Arte Contemporáneo', tipo: 'WEB', url: 'https://mac.uchile.cl/periodo/actuales/', extractor: 'DATED_HEADINGS', ubicacion: 'Museo de Arte Contemporáneo, Santiago', gratis: true, tags: ['arte', 'cultural', 'gratis'] },
+    { id: 'ceina', nombre: 'CEINA · cartelera cultural', tipo: 'WEB', url: 'https://ceina.cl/cartelera/', extractor: 'DATED_HEADINGS', ubicacion: 'CEINA, Arturo Prat 33, Santiago', tags: ['cultural'] },
+    { id: 'cultura-las-condes', nombre: 'Corporación Cultural Las Condes', tipo: 'WEB', url: 'https://www.culturallascondes.cl/artes-visuales/', extractor: 'DATED_HEADINGS', ubicacion: 'Las Condes, Santiago', tags: ['arte', 'cultural'] },
+    { id: 'municipalidad-santiago', nombre: 'Municipalidad de Santiago · actividades', tipo: 'WEB', url: 'https://www.munistgo.cl/talleres-comunidad/', extractor: 'DATED_HEADINGS', ubicacion: 'Santiago Centro', tags: ['municipal', 'cultural'] },
+    { id: 'municipalidad-providencia', nombre: 'Municipalidad de Providencia · actividades', tipo: 'WEB', url: 'https://providencia.cl/provi/site/edic/base/port/inicio.html', extractor: 'PROVIDENCIA', ubicacion: 'Providencia, Santiago', tags: ['municipal', 'cultural'] },
+    { id: 'teatro-la-florida', nombre: 'Teatro Municipal de La Florida', tipo: 'WEB', url: 'https://portaldisc.com/eventos/teatromunicipaldelaflorida', extractor: 'DATED_HEADINGS', ubicacion: 'Teatro Municipal de La Florida, La Florida', gratis: true, tags: ['municipal', 'teatro', 'cultural', 'gratis'] },
+    { id: 'cultura-nunoa', nombre: 'Corporación Cultural de Ñuñoa', tipo: 'WEB', url: 'https://www.ccn.cl/actividades', extractor: 'DATED_HEADINGS', ubicacion: 'Ñuñoa, Santiago', tags: ['municipal', 'cultural'] },
+    { id: 'mallplaza-vespucio', nombre: 'Mallplaza Vespucio · panoramas', tipo: 'WEB', url: 'https://www.mallplaza.com/cl/vespucio/panoramas/index.html', extractor: 'DATED_HEADINGS', ubicacion: 'Mallplaza Vespucio, La Florida', tags: ['mall', 'panorama'] },
+    { id: 'parque-arauco', nombre: 'Parque Arauco · eventos', tipo: 'WEB', url: 'https://www.parquearauco.cl/eventos', extractor: 'DATED_HEADINGS', ubicacion: 'Parque Arauco, Las Condes', tags: ['mall', 'panorama'] }
 ];
 
 const AI_SCHEMA = {
@@ -99,11 +110,13 @@ function isRetryableAiError(error) {
 
 function friendlySourceError(error) {
     const message = String(error?.message || error || 'Error desconocido');
-    if (isRetryableAiError(error)) return 'Gemini está temporalmente saturado. Intenta nuevamente en unos minutos.';
     if (error?.name === 'AbortError') return `La fuente tardó más de ${Math.round(DISCOVERY_FETCH_TIMEOUT_MS / 1000)} segundos en responder.`;
     if (/fetch failed/i.test(message)) return 'No se pudo conectar con la fuente.';
     const http = message.match(/HTTP\s+(\d{3})/i);
+    if (http?.[1] === '429') return 'La fuente limitó temporalmente las consultas (HTTP 429).';
+    if (http?.[1] === '503') return 'La fuente está temporalmente no disponible (HTTP 503).';
     if (http) return `La fuente respondió con error ${http[1]}.`;
+    if (isRetryableAiError(error)) return 'Gemini está temporalmente saturado. Intenta nuevamente en unos minutos.';
     return clean(message, 240) || 'Error desconocido';
 }
 
@@ -167,10 +180,17 @@ function currentProvidenciaUrl() {
     return `https://biblioteca.providencia.cl/provi/${year}-actividades-de-${SPANISH_MONTHS[Number(month) - 1]}`;
 }
 
+function currentMunicipalProvidenciaUrl() {
+    const [year, month] = getSantiagoDateKey().split('-');
+    return `https://providencia.cl/provi/${year}-actividades-de-${SPANISH_MONTHS[Number(month) - 1]}`;
+}
+
 async function fetchSource(source) {
     const urls = source.id === 'bibliotecas-providencia'
         ? [currentProvidenciaUrl(), source.url]
-        : [source.url];
+        : source.id === 'municipalidad-providencia'
+            ? [currentMunicipalProvidenciaUrl(), source.url]
+            : [source.url];
     let lastError;
     for (const url of urls) {
         try {
@@ -227,7 +247,7 @@ function inferredTags(text, defaults = ['cultural']) {
 
 function isProvidenciaCultureEvent(title, location) {
     const value = normalize(`${title} ${location}`);
-    return /biblioteca|cafe literario|montecarmelo|libro|lectura|cuento|poesia|comic|ajedrez|videojuego|juego de mesa|feria|festival|cine|teatro|exposicion|museo|patrimonio|arte|ilustrad|encuadernacion|ghibli/.test(value);
+    return /biblioteca|cafe literario|montecarmelo|libro|lectura|cuento|poesia|comic|ajedrez|videojuego|juego de mesa|feria|festival|cine|teatro|exposicion|museo|patrimonio|arte|ilustrad|encuadernacion|ghibli|taller|mercado|deport|baile|recorrido|tour|bonsai|idioma/.test(value);
 }
 
 function inAllowedWindow(event, maxDate) {
@@ -273,7 +293,7 @@ function extractHeritageEvents(html, source, maxDate) {
         const dateNodes = card.find('.field--name-field-fechas time');
         const fecha = parseHeritageDate(dateNodes.first().attr('datetime') || dateNodes.first().text());
         const fechaFin = parseHeritageDate(dateNodes.eq(1).attr('datetime') || dateNodes.eq(1).text());
-        const ubicacion = clean(card.find('.field--name-field-direccion').first().text(), 200) || 'Santiago';
+        const ubicacion = clean(card.find('.field--name-field-direccion').first().text(), 200) || source.ubicacion || 'Santiago';
         if (!titulo || !fecha) return;
         if (source.id === 'patrimonio-cultural' && !/santiago|recoleta|quinta normal/i.test(ubicacion)) return;
         const event = {
@@ -283,10 +303,10 @@ function extractHeritageEvents(html, source, maxDate) {
             fecha,
             fechaFin,
             precio: 0,
-            precioEstado: source.id === 'biblioteca-nacional' ? 'GRATIS' : 'NO_INFORMADO',
+            precioEstado: source.id === 'biblioteca-nacional' || source.gratis ? 'GRATIS' : 'NO_INFORMADO',
             imagenUrl: safeExternalUrl(card.find('img').first().attr('src'), null),
             fuenteUrl: safeExternalUrl(link.attr('href'), source.url),
-            tags: inferredTags(`${titulo} ${card.text()}`, source.id === 'biblioteca-nacional' ? ['libros', 'cultural', 'gratis'] : ['cultural']),
+            tags: inferredTags(`${titulo} ${card.text()}`, source.tags || (source.id === 'biblioteca-nacional' ? ['libros', 'cultural', 'gratis'] : ['cultural'])),
             confianza: 95,
             advertencias: null
         };
@@ -304,7 +324,8 @@ function extractProvidenciaEvents(html, source, maxDate) {
         if (cells.length < 3) return;
         const dateText = clean(cells.eq(0).text(), 200);
         const details = clean(cells.eq(1).text(), 1000);
-        const fecha = parseSpanishDate(dateText, year);
+        const range = parseLooseEventRange(`${dateText} ${year}`);
+        const fecha = range.fecha || parseSpanishDate(dateText, year);
         const titulo = clean(details.split(/inscripciones|gratuita|más info|previa inscripción|valor sujeto/i)[0], 200)
             .replace(/^["“”]+|["“”]+$/g, '')
             .trim();
@@ -317,7 +338,7 @@ function extractProvidenciaEvents(html, source, maxDate) {
             descripcion: details,
             ubicacion,
             fecha,
-            fechaFin: null,
+            fechaFin: range.fechaFin,
             ...price,
             imagenUrl: null,
             fuenteUrl: safeExternalUrl(cells.eq(1).find('a[href]').first().attr('href'), source.url),
@@ -371,33 +392,96 @@ function parseLooseEventDate(value) {
     const raw = clean(value, 1600);
     const iso = raw.match(/(20\d{2})-(\d{2})-(\d{2})/);
     if (iso) return parseDateOnly(`${iso[1]}-${iso[2]}-${iso[3]}`);
-    const numeric = raw.match(/\b(\d{1,2})[/-](\d{1,2})[/-](20\d{2})\b/);
-    if (numeric) return parseDateOnly(`${numeric[3]}-${String(Number(numeric[2])).padStart(2, '0')}-${String(Number(numeric[1])).padStart(2, '0')}`);
+    const numeric = raw.match(/(?:^|[^0-9])(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2}|20\d{2}))?(?![0-9])/);
+    if (numeric) return dateFromLooseParts(numeric[1], numeric[2], numeric[3]);
     const text = normalize(raw);
     const words = Object.keys(LOOSE_MONTHS).sort((a, b) => b.length - a.length).join('|');
     const match = text.match(new RegExp(`(?:^|\\s)(\\d{1,2})\\s+(?:de\\s+)?(${words})(?:\\s+(?:de\\s+)?(20\\d{2}))?`));
     if (!match) return null;
+    return dateFromLooseParts(match[1], LOOSE_MONTHS[match[2]], match[3]);
+}
+
+function normalizedLooseYear(value) {
+    if (!value) return null;
+    const year = Number(value);
+    return year < 100 ? 2000 + year : year;
+}
+
+function dateFromLooseParts(dayValue, monthValue, yearValue, allowYearRollover = true) {
+    const day = Number(dayValue);
+    const month = Number(monthValue);
     const todayKey = getSantiagoDateKey();
-    let year = Number(match[3] || todayKey.slice(0, 4));
-    const month = LOOSE_MONTHS[match[2]];
-    let date = parseDateOnly(`${year}-${String(month).padStart(2, '0')}-${String(Number(match[1])).padStart(2, '0')}`);
-    if (!match[3] && date && date < todayAsUtcDate()) {
+    const currentYear = Number(todayKey.slice(0, 4));
+    const currentMonth = Number(todayKey.slice(5, 7));
+    let year = normalizedLooseYear(yearValue) || currentYear;
+    let date = parseDateOnly(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+    // Sólo interpretamos como próximo año un salto claro de fin a inicio de año.
+    // Así, un evento del 13/11 no reaparece falsamente como noviembre del año siguiente.
+    if (!yearValue && allowYearRollover && date && date < todayAsUtcDate() && currentMonth - month >= 6) {
         year += 1;
-        date = parseDateOnly(`${year}-${String(month).padStart(2, '0')}-${String(Number(match[1])).padStart(2, '0')}`);
+        date = parseDateOnly(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
     }
     return date;
 }
 
+function inferredRangeYears(startMonth, endMonth, startYearValue, endYearValue) {
+    const todayKey = getSantiagoDateKey();
+    const currentYear = Number(todayKey.slice(0, 4));
+    const currentMonth = Number(todayKey.slice(5, 7));
+    let startYear = normalizedLooseYear(startYearValue) || currentYear;
+    let endYear = normalizedLooseYear(endYearValue) || startYear + (Number(endMonth) < Number(startMonth) ? 1 : 0);
+    if (!startYearValue && !endYearValue && currentMonth - Number(startMonth) >= 6) {
+        startYear += 1;
+        endYear += 1;
+    }
+    return { startYear, endYear };
+}
+
+function looseRangeFromParts(startDay, startMonth, startYearValue, endDay, endMonth, endYearValue) {
+    const { startYear, endYear } = inferredRangeYears(startMonth, endMonth, startYearValue, endYearValue);
+    return {
+        fecha: dateFromLooseParts(startDay, startMonth, startYear, false),
+        fechaFin: dateFromLooseParts(endDay, endMonth, endYear, false)
+    };
+}
+
+function parseLooseEventRange(value) {
+    const raw = clean(value, 1800).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const numeric = raw.match(/(?:^|[^0-9])(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2}|20\d{2}))?\s*(?:al|a|hasta|-)\s*(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2}|20\d{2}))?(?![0-9])/);
+    if (numeric) return looseRangeFromParts(numeric[1], numeric[2], numeric[3], numeric[4], numeric[5], numeric[6]);
+
+    const sharedNumeric = raw.match(/(?:^|[^0-9])(\d{1,2})\s*(?:al|a|hasta|y|-)\s*(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2}|20\d{2}))?(?![0-9])/);
+    if (sharedNumeric) return looseRangeFromParts(sharedNumeric[1], sharedNumeric[3], sharedNumeric[4], sharedNumeric[2], sharedNumeric[3], sharedNumeric[4]);
+
+    const words = Object.keys(LOOSE_MONTHS).sort((a, b) => b.length - a.length).join('|');
+    const sharedTextRange = raw.match(new RegExp(`\\b(\\d{1,2})\\s*(?:al|a|hasta|-)\\s*(\\d{1,2})\\s*(?:de\\s+)?(${words})(?:\\s*(?:de\\s+)?(20\\d{2}))?\\b`));
+    if (sharedTextRange) {
+        return looseRangeFromParts(
+            sharedTextRange[1], LOOSE_MONTHS[sharedTextRange[3]], sharedTextRange[4],
+            sharedTextRange[2], LOOSE_MONTHS[sharedTextRange[3]], sharedTextRange[4]
+        );
+    }
+    const textRange = raw.match(new RegExp(`\\b(\\d{1,2})\\s*(?:de\\s+)?(${words})\\s*,?\\s*(20\\d{2})?\\s*(?:al|a|hasta|-)\\s*(\\d{1,2})\\s*(?:de\\s+)?(${words})\\s*,?\\s*(20\\d{2})?\\b`));
+    if (textRange) {
+        return looseRangeFromParts(
+            textRange[1], LOOSE_MONTHS[textRange[2]], textRange[3],
+            textRange[4], LOOSE_MONTHS[textRange[5]], textRange[6]
+        );
+    }
+
+    return { fecha: parseLooseEventDate(raw), fechaFin: null };
+}
+
 function genericEventFromText({ title, context, url, location, image }, source, maxDate) {
     if (!GENERIC_EVENT_KEYWORDS.test(`${title} ${context}`)) return null;
-    const fecha = parseLooseEventDate(context);
+    const { fecha, fechaFin } = parseLooseEventRange(context);
     if (!fecha) return null;
     const event = {
         titulo: clean(title, 200),
         descripcion: clean(context, 700),
         ubicacion: clean(location, 200) || `${source.nombre}, Santiago`,
         fecha,
-        fechaFin: null,
+        fechaFin,
         ...eventPrice(context),
         imagenUrl: safeExternalUrl(image, null),
         fuenteUrl: safeExternalUrl(url, source.url),
@@ -406,6 +490,53 @@ function genericEventFromText({ title, context, url, location, image }, source, 
         advertencias: 'Extracción automática sin IA; confirmar detalles en la fuente.'
     };
     return event.titulo.length >= 6 && inAllowedWindow(event, maxDate) ? event : null;
+}
+
+function extractDatedHeadingEvents(html, source, maxDate) {
+    const $ = cheerio.load(html);
+    const events = [];
+    const ignoredTitles = /^(cartelera|programaci[oó]n|actividades|eventos|actuales|pr[oó]ximos eventos|esta semana|noticias|agenda)$/i;
+    $('h2, h3, h4, h5').each((_, element) => {
+        const heading = $(element);
+        const titulo = clean(heading.text(), 200);
+        if (titulo.length < 6 || ignoredTitles.test(titulo)) return;
+
+        let card = heading.closest('article, li, [class*="card"], [class*="item"], [class*="evento"], [class*="event"], [class*="program"], [class*="activity"], [class*="actividad"]');
+        if (!card.length) card = heading.parent();
+        let context = clean(String(card.html() || '').replace(/<[^>]+>/g, ' '), 1800);
+        let range = parseLooseEventRange(context);
+        if (!range.fecha) {
+            const nearby = clean(`${heading.parent().text()} ${heading.parent().next().text()}`, 1800);
+            range = parseLooseEventRange(nearby);
+            if (range.fecha) context = nearby;
+        }
+        if (!range.fecha) return;
+
+        const link = heading.find('a[href]').first().length
+            ? heading.find('a[href]').first()
+            : heading.closest('a[href]').length
+                ? heading.closest('a[href]')
+                : card.find('a[href]').first();
+        const detectedLocation = clean(card.find('[class*="location"], [class*="venue"], [class*="address"], [class*="ubicacion"], [class*="lugar"]').first().text(), 200);
+        const price = eventPrice(context);
+        const event = {
+            titulo,
+            descripcion: context,
+            ubicacion: detectedLocation || source.ubicacion || `${source.nombre}, Santiago`,
+            fecha: range.fecha,
+            fechaFin: range.fechaFin,
+            ...(source.gratis && price.precioEstado === 'NO_INFORMADO'
+                ? { precio: 0, precioEstado: 'GRATIS' }
+                : price),
+            imagenUrl: safeExternalUrl(card.find('img').first().attr('src'), null),
+            fuenteUrl: safeExternalUrl(link.attr('href'), source.url),
+            tags: inferredTags(`${titulo} ${context}`, source.tags || ['cultural']),
+            confianza: 88,
+            advertencias: 'Extracción automática sin IA; confirmar detalles en la fuente.'
+        };
+        if (inAllowedWindow(event, maxDate)) events.push(event);
+    });
+    return events;
 }
 
 function extractGenericHtmlEvents(html, source, maxDate) {
@@ -453,12 +584,14 @@ function extractRssEvents(html, source, maxDate) {
 
 function extractDirectEvents(html, source, maxDate) {
     let events = [];
-    if (source.id === 'biblioteca-nacional' || source.id === 'patrimonio-cultural') {
+    if (source.id === 'biblioteca-nacional' || source.id === 'patrimonio-cultural' || source.extractor === 'HERITAGE') {
         events = extractHeritageEvents(html, source, maxDate);
-    } else if (source.id === 'bibliotecas-providencia') {
+    } else if (source.id === 'bibliotecas-providencia' || source.extractor === 'PROVIDENCIA') {
         events = extractProvidenciaEvents(html, source, maxDate);
     } else if (source.id === 'hoy-jugue') {
         events = extractHoyJuegueEvents(html, source, maxDate);
+    } else if (source.extractor === 'DATED_HEADINGS') {
+        events = extractDatedHeadingEvents(html, source, maxDate);
     }
     if (events.length === 0) {
         events = source.tipo === 'RSS'

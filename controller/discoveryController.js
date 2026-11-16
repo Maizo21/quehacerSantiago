@@ -35,12 +35,17 @@ exports.getSources = async (req, res) => {
     res.json(SOURCES);
 };
 exports.runDiscovery = async (req, res) => {
+    if (!/^(1|true|yes)$/i.test(process.env.DISCOVERY_SERVER_SCRAPING_ENABLED || 'false')) {
+        return res.status(410).json({
+            Error: 'El scraping del servidor está desactivado. Usa el recolector local del navegador.'
+        });
+    }
     const requested = Array.isArray(req.body.sourceIds) ? req.body.sourceIds.map(clean) : [];
     const selected = requested.length > 0
         ? SOURCES.filter(source => requested.includes(source.id))
         : SOURCES;
     if (selected.length === 0) return res.status(400).json({ Error: 'No se seleccionaron fuentes válidas' });
-    if (selected.length > 20) return res.status(400).json({ Error: 'Máximo 20 fuentes por búsqueda' });
+    if (selected.length > 30) return res.status(400).json({ Error: 'Máximo 30 fuentes por búsqueda' });
 
     const results = [];
     const aiBudget = {

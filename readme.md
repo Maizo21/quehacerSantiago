@@ -147,6 +147,9 @@ curl -X GET "http://quehacersantiago-production.up.railway.app/ideas?id=1"
 - Los planes sin fecha se consideran permanentes y siguen visibles.
 - `/admin` permite revisar planes activos, vencidos y sin fecha, además de ejecutar búsquedas de eventos y aprobar u ocultar candidatos.
 - El descubrimiento usa extracción directa, datos JSON-LD y un extractor HTML local antes de considerar IA. El backend devuelve los candidatos en la respuesta y no los guarda ni registra estados de fuentes en PostgreSQL.
+- El catálogo incluye carteleras culturales, municipales y de centros comerciales. Las fuentes adicionales quedan desmarcadas por defecto: sólo se descargan las seleccionadas al iniciar una búsqueda.
+- El scraping se ejecuta en la extensión privada `browser-extension`; el panel no llama a Railway para recolectar carteleras. Instálala siguiendo `browser-extension/README.md`.
+- El endpoint antiguo de scraping queda desactivado por defecto. `DISCOVERY_SERVER_SCRAPING_ENABLED=true` lo reactiva únicamente como respaldo de emergencia.
 - Los candidatos se conservan durante 6 horas únicamente en `localStorage`. **Ocultar** no hace solicitudes; **Aprobar** es la única acción que crea un plan y escribe sus etiquetas en una transacción.
 - Gemini está desactivado por defecto. Para habilitarlo como último respaldo, usa `DISCOVERY_AI_FALLBACK_ENABLED=true`; aun así, `MAX_AI_SOURCES_PER_RUN=1` limita el máximo de fuentes procesadas con IA por búsqueda. `DISCOVERY_FETCH_TIMEOUT_MS` y `GEMINI_DISCOVERY_MODEL` permiten ajustar el comportamiento.
 - Las publicaciones de Instagram que no sean accesibles automáticamente se pueden procesar desde **Importar desde una URL** al crear un plan.
