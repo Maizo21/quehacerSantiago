@@ -7,46 +7,37 @@
     'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
   ];
   const SOURCES = [
-    { id: 'biblioteca-santiago', nombre: 'Biblioteca de Santiago', tipo: 'WEB', url: 'https://www.bibliotecasantiago.gob.cl/cartelera/proximos' },
+    { id: 'biblioteca-santiago', nombre: 'Biblioteca de Santiago', tipo: 'WEB', url: 'https://www.bibliotecasantiago.gob.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Biblioteca de Santiago, Matucana 151', gratis: true, tags: ['biblioteca', 'libros', 'cultural', 'gratis'] },
     { id: 'biblioteca-nacional', nombre: 'Biblioteca Nacional', tipo: 'WEB', url: 'https://www.bibliotecanacional.gob.cl/cartelera' },
     { id: 'bibliotecas-providencia', nombre: 'Bibliotecas de Providencia', tipo: 'WEB', url: 'https://biblioteca.providencia.cl/provi/site/edic/base/port/inicio.html' },
     { id: 'patrimonio-cultural', nombre: 'Cartelera de Patrimonio Cultural', tipo: 'WEB', url: 'https://www.bibliotecanacional.gob.cl/cartelera/red-nacional?region=RM' },
-    { id: 'visit-santiago', nombre: 'Visit Santiago', tipo: 'WEB', url: 'https://visitsantiago.travel/panoramas/' },
-    { id: 'cclm', nombre: 'Centro Cultural La Moneda', tipo: 'WEB', url: 'https://www.cclm.cl/' },
+    { id: 'visit-santiago', nombre: 'Visit Santiago', tipo: 'WEB', url: 'https://visitsantiago.travel/en/panoramas/', extractor: 'DATED_HEADINGS', ubicacion: 'Santiago', tags: ['panorama', 'cultural'] },
+    { id: 'cclm', nombre: 'Centro Cultural La Moneda', tipo: 'WEB', url: 'https://www.cclm.cl/actividades-y-talleres/', extractor: 'DATED_HEADINGS', ubicacion: 'Centro Cultural La Moneda, Santiago', tags: ['arte', 'cultural'] },
     { id: 'gam', nombre: 'GAM', tipo: 'WEB', url: 'https://gam.cl/es/calendario/' },
-    { id: 'la-tercera-finde', nombre: 'La Tercera Finde', tipo: 'RSS', url: 'https://www.latercera.com/arcio/rss/' },
+    { id: 'la-tercera-finde', nombre: 'La Tercera Finde', tipo: 'WEB', url: 'https://www.latercera.com/canal/finde/', extractor: 'LA_TERCERA_FINDE', ubicacion: 'Santiago', tags: ['panorama', 'cultural'], followEventLinks: true, detailPathPrefix: '/finde/noticia/', detailLimit: 12, detailsOnly: true },
     { id: 'camara-libro', nombre: 'Cámara Chilena del Libro y FILSA', tipo: 'WEB', url: 'https://camaradellibro.cl/' },
     { id: 'hoy-jugue', nombre: 'Hoy Jugué · ferias y juegos', tipo: 'WEB', url: 'https://hoyjugue.cl/agenda/' },
-    { id: 'mesa-1', nombre: 'Mesa 1', tipo: 'WEB', url: 'https://www.mesa1.cl/pages/events' },
-    { id: 'bastion-goblin', nombre: 'Bastión Goblin', tipo: 'WEB', url: 'https://bastiongoblin.com/pages/torneos' },
-    { id: 'area-52', nombre: 'Área 52', tipo: 'WEB', url: 'https://area52.cl/collections/eventos' },
+    { id: 'mesa-1', nombre: 'Mesa 1', tipo: 'WEB', url: 'https://www.mesa1.cl/pages/events', extractor: 'DATED_HEADINGS', ubicacion: 'Mesa 1, Av. Recoleta 901, local 4', tags: ['cartas', 'juegos'], maxEvents: 2, recurringEvents: [{ titulo: 'Torneos casuales semanales de TCG en Mesa 1', weekday: 6, descripcion: 'Programación semanal de Pokémon, Magic, One Piece y otros TCG. Confirma el torneo y la inscripción en la fuente.', ubicacion: 'Mesa 1, Av. Recoleta 901, local 4' }] },
+    { id: 'bastion-goblin', nombre: 'Bastión Goblin', tipo: 'WEB', url: 'https://bastiongoblin.com/collections/magic-eventos', extractor: 'DATED_HEADINGS', ubicacion: 'Bastión Goblin, Apoquindo 7750, Las Condes', tags: ['cartas', 'juegos'], maxEvents: 2 },
+    { id: 'area-52', nombre: 'Área 52', tipo: 'WEB', url: 'https://area52.cl/', extractor: 'PRODUCT_DETAIL', ubicacion: 'Área 52, Santa Isabel 962, Providencia', tags: ['cartas', 'juegos'], followEventLinks: true, detailPathPrefix: '/products/', detailLimit: 6, detailsOnly: true, maxEvents: 2 },
     { id: 'magicsur', nombre: 'MagicSur · torneos de cartas', tipo: 'WEB', url: 'https://www.cartasmagicsur.cl/torneos' },
-    { id: 'torneos-tcg', nombre: 'TorneosTCG · calendario RM', tipo: 'WEB', url: 'https://www.torneostcg.cl/region-metropolitana', extractor: 'DATED_HEADINGS', ubicacion: 'Región Metropolitana', tags: ['cartas', 'juegos'] },
+    { id: 'torneos-tcg', nombre: 'TorneosTCG · calendario Pokémon RM', tipo: 'WEB', url: 'https://www.torneostcg.cl/region-metropolitana/torneos/pokemon-tcg', extractor: 'DATE_GROUPS', ubicacion: 'Región Metropolitana', tags: ['cartas', 'juegos'], maxEvents: 2, santiagoOnly: true, recurringEvents: [{ titulo: 'Torneos semanales de Pokémon TCG en la Región Metropolitana', weekday: 3, descripcion: 'Calendario semanal por tienda, comuna y horario. Revisa la fuente para escoger el torneo que prefieras.', ubicacion: 'Región Metropolitana' }, { titulo: 'Torneos de fin de semana de Pokémon TCG en la Región Metropolitana', weekday: 6, descripcion: 'Calendario de torneos Pokémon TCG del fin de semana. Confirma tienda, horario y cupos en la fuente.', ubicacion: 'Región Metropolitana' }] },
     { id: 'eventhoy-juegos', nombre: 'EventHoy · juegos y gaming', tipo: 'WEB', url: 'https://eventhoy.com/categoria/juegos', extractor: 'DATED_HEADINGS', ubicacion: 'Santiago', tags: ['juegos'] },
-    { id: 'collector-center', nombre: 'Collector Center · eventos TCG', tipo: 'WEB', url: 'https://collectorcenter.cl/pages/eventos', extractor: 'DATED_HEADINGS', ubicacion: 'Providencia, Santiago', tags: ['cartas', 'juegos'] },
-    { id: 'deck-shield', nombre: 'Deck Shield · eventos TCG', tipo: 'WEB', url: 'https://deckshield.cl/pages/eventos', extractor: 'DATED_HEADINGS', ubicacion: 'Santiago', tags: ['cartas', 'juegos'] },
+    { id: 'deck-shield', nombre: 'Deck Shield · eventos TCG', tipo: 'WEB', url: 'https://deckshield.cl/pages/eventos', extractor: 'DATE_GROUPS', ubicacion: 'Santiago', tags: ['cartas', 'juegos'], santiagoOnly: true, maxEvents: 12 },
     { id: 'instituto-italiano', nombre: 'Instituto Italiano · Barrio Italia', tipo: 'WEB', url: 'https://iicsantiago.esteri.it/es/gli_eventi/calendario/', extractor: 'DATED_HEADINGS', ubicacion: 'Providencia, Santiago', tags: ['barrio italia', 'cultural'] },
     { id: 'matucana-100', nombre: 'Matucana 100', tipo: 'WEB', url: 'https://www.m100.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Matucana 100, Estación Central', tags: ['cultural'] },
     { id: 'mnba', nombre: 'Museo Nacional de Bellas Artes', tipo: 'WEB', url: 'https://www.mnba.gob.cl/cartelera', extractor: 'HERITAGE', ubicacion: 'Museo Nacional de Bellas Artes, Santiago', gratis: true, tags: ['arte', 'cultural', 'gratis'] },
     { id: 'mac', nombre: 'Museo de Arte Contemporáneo', tipo: 'WEB', url: 'https://mac.uchile.cl/periodo/actuales/', extractor: 'DATED_HEADINGS', ubicacion: 'Museo de Arte Contemporáneo, Santiago', gratis: true, tags: ['arte', 'cultural', 'gratis'] },
     { id: 'ceina', nombre: 'CEINA · cartelera cultural', tipo: 'WEB', url: 'https://ceina.cl/cartelera/', extractor: 'DATED_HEADINGS', ubicacion: 'CEINA, Arturo Prat 33, Santiago', tags: ['cultural'] },
-    { id: 'cultura-las-condes', nombre: 'Corporación Cultural Las Condes', tipo: 'WEB', url: 'https://www.culturallascondes.cl/artes-visuales/', extractor: 'DATED_HEADINGS', ubicacion: 'Las Condes, Santiago', tags: ['arte', 'cultural'] },
+    { id: 'cultura-las-condes', nombre: 'Corporación Cultural Las Condes', tipo: 'WEB', url: 'https://www.culturallascondes.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Las Condes, Santiago', tags: ['arte', 'cultural'] },
     { id: 'municipalidad-santiago', nombre: 'Municipalidad de Santiago · actividades', tipo: 'WEB', url: 'https://www.munistgo.cl/talleres-comunidad/', extractor: 'DATED_HEADINGS', ubicacion: 'Santiago Centro', tags: ['municipal', 'cultural'] },
     { id: 'municipalidad-providencia', nombre: 'Municipalidad de Providencia · actividades', tipo: 'WEB', url: 'https://providencia.cl/provi/site/edic/base/port/inicio.html', extractor: 'PROVIDENCIA', ubicacion: 'Providencia, Santiago', tags: ['municipal', 'cultural'] },
-    { id: 'teatro-la-florida', nombre: 'Teatro Municipal de La Florida', tipo: 'WEB', url: 'https://portaldisc.com/eventos/teatromunicipaldelaflorida', extractor: 'DATED_HEADINGS', ubicacion: 'Teatro Municipal de La Florida, La Florida', gratis: true, tags: ['municipal', 'teatro', 'cultural', 'gratis'] },
-    { id: 'cultura-nunoa', nombre: 'Corporación Cultural de Ñuñoa', tipo: 'WEB', url: 'https://www.ccn.cl/actividades', extractor: 'DATED_HEADINGS', ubicacion: 'Ñuñoa, Santiago', tags: ['municipal', 'cultural'] },
-    { id: 'mallplaza-vespucio', nombre: 'Mallplaza Vespucio · panoramas', tipo: 'WEB', url: 'https://www.mallplaza.com/cl/vespucio/panoramas/index.html', extractor: 'DATED_HEADINGS', ubicacion: 'Mallplaza Vespucio, La Florida', tags: ['mall', 'panorama'] },
-    { id: 'parque-arauco', nombre: 'Parque Arauco · eventos', tipo: 'WEB', url: 'https://www.parquearauco.cl/eventos', extractor: 'DATED_HEADINGS', ubicacion: 'Parque Arauco, Las Condes', tags: ['mall', 'panorama'] },
+    { id: 'teatro-la-florida', nombre: 'Teatro Municipal de La Florida', tipo: 'WEB', url: 'https://portaldisc.com/tickets/', extractor: 'DATED_HEADINGS', ubicacion: 'Teatro Municipal de La Florida, La Florida', tags: ['municipal', 'teatro', 'cultural'], requiredText: 'Teatro Municipal de La Florida' },
+    { id: 'cultura-nunoa', nombre: 'Corporación Cultural de Ñuñoa', tipo: 'WEB', url: 'https://www.ccn.cl/noticias', extractor: 'DATED_HEADINGS', ubicacion: 'Ñuñoa, Santiago', tags: ['municipal', 'cultural'], recurringEvents: [{ titulo: 'Agenda cultural semanal de Ñuñoa', weekday: 6, descripcion: 'Revisa las actividades, cine, literatura, exposiciones y encuentros publicados por la Corporación Cultural de Ñuñoa.', ubicacion: 'Ñuñoa, Santiago' }], maxEvents: 4 },
+    { id: 'mallplaza-vespucio', nombre: 'Mallplaza Vespucio · panoramas', tipo: 'WEB', url: 'https://www.mallplaza.com/cl/vespucio/panoramas/index.html', extractor: 'DATED_HEADINGS', ubicacion: 'Mallplaza Vespucio, La Florida', tags: ['mall', 'panorama'], extractEmbeddedJson: true, recurringEvents: [{ titulo: 'Panoramas y actividades de Mallplaza Vespucio', weekday: 6, descripcion: 'Revisa el calendario de actividades del centro comercial para esta semana y confirma fechas y condiciones en la fuente.', ubicacion: 'Mallplaza Vespucio, La Florida' }], maxEvents: 6 },
     { id: 'factoria-franklin', nombre: 'Factoría Franklin · agenda', tipo: 'WEB', url: 'https://factoria-franklin.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Factoría Franklin, Santiago', tags: ['barrio franklin', 'ferias', 'cultural'] },
-    { id: 'agenda-yungay', nombre: 'Agenda Yungay', tipo: 'WEB', url: 'https://agendayungay.cl/eventos/', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Yungay, Santiago', tags: ['barrio yungay', 'cultural'] },
-    { id: 'mavi-uc', nombre: 'MAVI UC · Barrio Lastarria', tipo: 'WEB', url: 'https://mavi.uc.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'MAVI UC, Barrio Lastarria', tags: ['lastarria', 'arte', 'cultural'] },
-    { id: 'santiago-turismo', nombre: 'Santiago Turismo · agenda', tipo: 'WEB', url: 'https://www.santiagoturismo.cl/es/agenda/', extractor: 'DATED_HEADINGS', ubicacion: 'Santiago', tags: ['barrios', 'turismo', 'cultural'] },
-    { id: 'patio-bellavista', nombre: 'Patio Bellavista · eventos', tipo: 'WEB', url: 'https://patiobellavista.cl/eventos/', extractor: 'DATED_HEADINGS', ubicacion: 'Patio Bellavista, Providencia', tags: ['bellavista', 'cultural'], followEventLinks: true },
-    { id: 'barrio-lastarria', nombre: 'Barrio Lastarria · sitio oficial', tipo: 'WEB', url: 'https://barriolastarria.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Lastarria, Santiago', tags: ['lastarria', 'cultural'] },
-    { id: 'vive-bellavista', nombre: 'VIVE Santiago · Bellavista', tipo: 'WEB', url: 'https://vivesantiago.cl/barrio-bellavista.html', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Bellavista, Santiago', tags: ['bellavista', 'barrios'] },
-    { id: 'vive-lastarria', nombre: 'VIVE Santiago · Lastarria', tipo: 'WEB', url: 'https://vivesantiago.cl/barrio-lastarria.html', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Lastarria, Santiago', tags: ['lastarria', 'barrios'] },
-    { id: 'vive-yungay', nombre: 'VIVE Santiago · Yungay', tipo: 'WEB', url: 'https://vivesantiago.cl/barrio-yungay.html', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Yungay, Santiago', tags: ['barrio yungay', 'barrios'] },
-    { id: 'vive-brasil', nombre: 'VIVE Santiago · Barrio Brasil', tipo: 'WEB', url: 'https://vivesantiago.cl/barrio-brasil.html', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Brasil, Santiago', tags: ['barrio brasil', 'barrios'] },
+    { id: 'mavi-uc', nombre: 'MAVI UC · Barrio Lastarria', tipo: 'WEB', url: 'https://mavi.uc.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'MAVI UC, José Victorino Lastarria 307', tags: ['lastarria', 'arte', 'cultural'], recurringEvents: [{ titulo: 'Visita MAVI UC en Barrio Lastarria', weekday: 6, descripcion: 'Recorre la programación y las exposiciones vigentes del Museo de Artes Visuales. Confirma la muestra actual y las entradas en la fuente.', ubicacion: 'MAVI UC, José Victorino Lastarria 307' }], maxEvents: 4 },
+    { id: 'barrio-lastarria', nombre: 'Barrio Lastarria · sitio oficial', tipo: 'WEB', url: 'https://barriolastarria.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Barrio Lastarria, Santiago', tags: ['lastarria', 'cultural'], recurringEvents: [{ titulo: 'Recorrido cultural por Barrio Lastarria', weekday: 6, descripcion: 'Plan para recorrer museos, espacios culturales, librerías, tiendas y gastronomía del Barrio Lastarria.', ubicacion: 'Barrio Lastarria, Santiago' }], maxEvents: 2 },
     { id: 'club-chocolate', nombre: 'Club Chocolate · Bellavista', tipo: 'WEB', url: 'https://clubchocolate.cl/', extractor: 'DATED_HEADINGS', ubicacion: 'Club Chocolate, Barrio Bellavista', tags: ['bellavista', 'música', 'noche'] }
   ];
 
@@ -56,7 +47,7 @@
     sep: 9, sept: 9, septiembre: 9, setiembre: 9, oct: 10, octubre: 10,
     nov: 11, noviembre: 11, dic: 12, diciembre: 12
   };
-  const EVENT_KEYWORDS = /torneo|evento|actividad|feria|festival|taller|charla|encuentro|exposici[oó]n|concierto|funci[oó]n|jornada|prelanzamiento|presentaci[oó]n|club de lectura|cuentacuentos|juego de mesa|tcg|pok[eé]mon|magic|catan|ajedrez|comic|c[oó]mic/i;
+  const EVENT_KEYWORDS = /torneo|league|challenge|cup|liga|commander|evento|actividad|feria|festival|taller|charla|encuentro|exposici[oó]n|concierto|funci[oó]n|jornada|prelanzamiento|presentaci[oó]n|club de lectura|cuentacuentos|juego de mesa|tcg|pok[eé]mon|magic|catan|ajedrez|comic|c[oó]mic/i;
   const CARD_SELECTOR = 'article, li, [class*="event"], [class*="evento"], [class*="card"], [class*="item"], [class*="product"], [class*="program"], [class*="activity"], [class*="actividad"]';
 
   function clean(value, max = 1000) {
@@ -144,7 +135,9 @@
     const text = normalize(raw);
     const words = Object.keys(LOOSE_MONTHS).sort((a, b) => b.length - a.length).join('|');
     const match = text.match(new RegExp(`(?:^|\\s)(\\d{1,2})\\s+(?:de\\s+)?(${words})(?:\\s+(?:de\\s+)?(20\\d{2}))?`));
-    return match ? dateFromParts(match[1], LOOSE_MONTHS[match[2]], match[3]) : null;
+    if (match) return dateFromParts(match[1], LOOSE_MONTHS[match[2]], match[3]);
+    const monthFirst = text.match(new RegExp(`(?:^|\\s)(${words})\\s+(\\d{1,2})(?:\\s+(20\\d{2}))?`));
+    return monthFirst ? dateFromParts(monthFirst[2], LOOSE_MONTHS[monthFirst[1]], monthFirst[3]) : null;
   }
 
   function parseLooseRange(value) {
@@ -154,7 +147,19 @@
     const sharedNumeric = raw.match(/(?:^|[^0-9])(\d{1,2})\s*(?:al|a|hasta|y|-)\s*(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2}|20\d{2}))?(?![0-9])/);
     if (sharedNumeric) return rangeFromParts(sharedNumeric[1], sharedNumeric[3], sharedNumeric[4], sharedNumeric[2], sharedNumeric[3], sharedNumeric[4]);
     const words = Object.keys(LOOSE_MONTHS).sort((a, b) => b.length - a.length).join('|');
-    const sharedText = raw.match(new RegExp(`\\b(\\d{1,2})\\s*(?:al|a|hasta|-)\\s*(\\d{1,2})\\s*(?:de\\s+)?(${words})(?:\\s*(?:de\\s+)?(20\\d{2}))?\\b`));
+    const dayFirstList = raw.match(new RegExp(`\\b(\\d{1,2})\\s*[,]\\s*(\\d{1,2})(?:\\s*(?:y|,)\\s*(\\d{1,2}))?\\s*(?:de\\s+)?(${words})(?:\\s*(?:de\\s+)?(20\\d{2}))?\\b`));
+    if (dayFirstList) {
+      const endDay = dayFirstList[3] || dayFirstList[2];
+      return rangeFromParts(dayFirstList[1], LOOSE_MONTHS[dayFirstList[4]], dayFirstList[5], endDay, LOOSE_MONTHS[dayFirstList[4]], dayFirstList[5]);
+    }
+    const monthFirstList = raw.match(new RegExp(`\\b(${words})\\s+(\\d{1,2})\\s*[,]\\s*(\\d{1,2})(?:\\s*y\\s*(\\d{1,2}))?\\s*[,]?\\s*(20\\d{2})\\b`));
+    if (monthFirstList) {
+      const endDay = monthFirstList[4] || monthFirstList[3];
+      return rangeFromParts(monthFirstList[2], LOOSE_MONTHS[monthFirstList[1]], monthFirstList[5], endDay, LOOSE_MONTHS[monthFirstList[1]], monthFirstList[5]);
+    }
+    const monthFirstRange = raw.match(new RegExp(`\\b(${words})\\s+(\\d{1,2})\\s*[,]?\\s*(20\\d{2})?\\s*(?:al|a|hasta|-|/|\\|)\\s*(${words})\\s+(\\d{1,2})\\s*[,]?\\s*(20\\d{2})?\\b`));
+    if (monthFirstRange) return rangeFromParts(monthFirstRange[2], LOOSE_MONTHS[monthFirstRange[1]], monthFirstRange[3], monthFirstRange[5], LOOSE_MONTHS[monthFirstRange[4]], monthFirstRange[6]);
+    const sharedText = raw.match(new RegExp(`\\b(\\d{1,2})\\s*(?:al|a|hasta|y|-)\\s*(\\d{1,2})\\s*(?:de\\s+)?(${words})(?:\\s*(?:de\\s+)?(20\\d{2}))?\\b`));
     if (sharedText) return rangeFromParts(sharedText[1], LOOSE_MONTHS[sharedText[3]], sharedText[4], sharedText[2], LOOSE_MONTHS[sharedText[3]], sharedText[4]);
     const textRange = raw.match(new RegExp(`\\b(\\d{1,2})\\s*(?:de\\s+)?(${words})\\s*,?\\s*(20\\d{2})?\\s*(?:al|a|hasta|-)\\s*(\\d{1,2})\\s*(?:de\\s+)?(${words})\\s*,?\\s*(20\\d{2})?\\b`));
     if (textRange) return rangeFromParts(textRange[1], LOOSE_MONTHS[textRange[2]], textRange[3], textRange[4], LOOSE_MONTHS[textRange[5]], textRange[6]);
@@ -250,7 +255,7 @@
     const ignored = /^(cartelera|programaci[oó]n|actividades|eventos|actuales|pr[oó]ximos eventos|esta semana|noticias|agenda)$/i;
     doc.querySelectorAll('h2, h3, h4, h5').forEach(heading => {
       const title = clean(heading.textContent, 200);
-      if (title.length < 6 || ignored.test(title)) return;
+      if (title.length < 6 || ignored.test(title) || Boolean(parseLooseDate(title) && !/[a-záéíóúñ]{4,}/i.test(title.replace(/(?:ene|feb|mar|abr|may|jun|jul|ago|sep|sept|oct|nov|dic)[a-z]*/gi, '')))) return;
       const card = heading.closest(CARD_SELECTOR) || heading.parentElement;
       let context = elementText(card);
       let range = parseLooseRange(context);
@@ -259,6 +264,7 @@
         range = parseLooseRange(context);
       }
       if (!range.fecha) return;
+      if (source.requiredText && !normalize(`${title} ${context}`).includes(normalize(source.requiredText))) return;
       const link = first(heading, 'a[href]') || heading.closest('a[href]') || first(card, 'a[href]');
       const location = first(card, '[class*="location"], [class*="venue"], [class*="address"], [class*="ubicacion"], [class*="lugar"]');
       const image = first(card, 'img');
@@ -266,6 +272,160 @@
       if (inWindow(event, maxDate)) events.push(event);
     });
     return events;
+  }
+
+  function nextWeekday(weekday, weekOffset = 0) {
+    const today = santiagoDateKey();
+    const current = new Date(`${today}T12:00:00.000Z`).getUTCDay();
+    const delta = (Number(weekday) - current + 7) % 7;
+    return addDays(today, delta + Number(weekOffset || 0) * 7);
+  }
+
+  function extractRecurringEvents(source, maxDate) {
+    return (source.recurringEvents || []).map(item => {
+      const fecha = nextWeekday(item.weekday, item.weekOffset);
+      const event = baseEvent(source, item.titulo, item.descripcion, { fecha, fechaFin: null }, source.url, item.ubicacion, null, 72);
+      event.advertencias = 'Plan recurrente: confirma programación, cupos y horario en la fuente.';
+      return event;
+    }).filter(event => inWindow(event, maxDate));
+  }
+
+  function extractProductDetail(doc, source, maxDate) {
+    const titleNode = doc.querySelector('main h1, h1');
+    const title = clean(titleNode?.textContent, 200);
+    const root = titleNode?.closest('main') || doc.querySelector('main') || doc.body;
+    const context = elementText(root, 3000);
+    const range = parseLooseRange(`${title} ${context}`);
+    if (!title || !range.fecha) return [];
+    const locationMatch = context.match(/(?:d[oó]nde|direcci[oó]n)\s*[:：]?\s*(.{3,180}?)(?=\s+(?:check-in|hora|horario|valor|entrada|formato)\b|$)/i);
+    const location = clean(locationMatch?.[1], 200) || source.ubicacion;
+    const event = baseEvent(source, title, context, range, source.url, location, first(root, 'img')?.getAttribute('src'), 94);
+    return inWindow(event, maxDate) ? [event] : [];
+  }
+
+  function sectionFragment(doc, start, end) {
+    try {
+      const range = doc.createRange();
+      range.setStartAfter(start);
+      if (end) range.setEndBefore(end);
+      else range.setEndAfter(start.parentElement || start);
+      const container = doc.createElement('div');
+      container.appendChild(range.cloneContents());
+      return container;
+    } catch (_) {
+      return start.parentElement || start;
+    }
+  }
+
+  function groupedDateNodes(doc) {
+    const nodes = Array.from(doc.querySelectorAll('h2, h3, h4, time, [class*="date"], [class*="fecha"]'));
+    return nodes.filter(node => {
+      const text = clean(node.textContent, 80);
+      return text.length <= 45 && Boolean(parseLooseDate(text));
+    });
+  }
+
+  function groupedEventTitle(text) {
+    const firstPart = clean(text, 260).split('·')[0];
+    return clean(firstPart.replace(/\s+\d{1,2}:\d{2}(?:\s*hrs?)?.*$/i, ''), 200);
+  }
+
+  function extractDateGroups(doc, source, maxDate) {
+    const events = [];
+    const dates = groupedDateNodes(doc);
+    dates.forEach((dateNode, index) => {
+      const fecha = parseLooseDate(clean(dateNode.textContent, 80));
+      if (!fecha) return;
+      const section = sectionFragment(doc, dateNode, dates[index + 1]);
+      const candidates = Array.from(section.querySelectorAll('a[href], h3, h4'));
+      candidates.forEach(candidate => {
+        const context = clean(candidate.textContent, 1000);
+        const title = groupedEventTitle(context);
+        if (title.length < 8 || !/league|torneo|cup|challenge|liga|prelanzamiento|commander|pok[eé]mon/i.test(`${title} ${context}`)) return;
+        if (source.santiagoOnly && (isOutsideSantiago(context) || !isSantiagoEventText(context))) return;
+        const parts = context.split('·').map(part => clean(part, 220)).filter(Boolean);
+        const location = parts.find(part => /metro|santiago|providencia|recoleta|las condes|la florida|ñuñoa|nunoa|maip[uú]|san miguel|san bernardo|buin|talagante/i.test(part)) || source.ubicacion;
+        const link = candidate.matches('a[href]') ? candidate : first(candidate, 'a[href]');
+        const event = baseEvent(source, title, context, { fecha, fechaFin: null }, link?.getAttribute('href') || source.url, location, null, 94);
+        if (inWindow(event, maxDate)) events.push(event);
+      });
+    });
+    return events;
+  }
+
+  function textBetweenHeadings(doc, heading, nextHeading) {
+    try {
+      const range = doc.createRange();
+      range.setStartAfter(heading);
+      if (nextHeading) range.setEndBefore(nextHeading);
+      else range.setEndAfter(heading.parentElement || heading);
+      const container = doc.createElement('div');
+      container.appendChild(range.cloneContents());
+      return elementText(container, 2200);
+    } catch (_) {
+      return clean(`${elementText(heading.parentElement)} ${elementText(heading.parentElement?.nextElementSibling)}`, 2200);
+    }
+  }
+
+  function labeledLocation(context, fallback) {
+    const match = clean(context, 2200).match(/direcci[oó]n\s+(.{3,220}?)(?=\s+(?:horario|entrada)\b|$)/i);
+    return clean(match?.[1], 200) || fallback;
+  }
+
+  function isOutsideSantiago(location) {
+    return /\b(?:concepci[oó]n|valpara[ií]so|vi[ñn]a del mar|la serena|coquimbo|rancagua|talca|chill[aá]n|temuco|valdivia|osorno|puerto montt|punta arenas|antofagasta|iquique|arica)\b/i.test(location || '');
+  }
+
+  function isSantiagoEventText(value) {
+    return /metro|santiago|providencia|recoleta|las condes|la florida|ñuñoa|nunoa|maip[uú]|san miguel|san bernardo|buin|talagante|puente alto|la reina|vitacura|lo barnechea|quilicura|huechuraba|independencia|estaci[oó]n central|cerrillos|pudahuel|peñalol[eé]n|macul|la cisterna|el bosque|la granja|quinta normal|lo prado|lo espejo|san ram[oó]n|padre hurtado|melipilla|colina|lampa/i.test(value || '');
+  }
+
+  function findeArticleRange(root, title) {
+    const fromTitle = parseLooseRange(title);
+    if (fromTitle.fecha) return fromTitle;
+    const dateCue = /se (?:celebra|realiza|har[aá])|tendr[aá] lugar|este (?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)|los d[ií]as|desde el|entre el|hasta el/i;
+    for (const paragraph of root.querySelectorAll('p')) {
+      const text = elementText(paragraph, 1200);
+      if (!dateCue.test(text)) continue;
+      const range = parseLooseRange(text);
+      if (range.fecha) return range;
+    }
+    return { fecha: null, fechaFin: null };
+  }
+
+  function extractLaTerceraFinde(doc, source, maxDate) {
+    const titleNode = doc.querySelector('main h1, article h1, h1');
+    const articleTitle = clean(titleNode?.textContent, 200);
+    if (!articleTitle) return [];
+    const root = titleNode.closest('article') || titleNode.closest('main') || doc.querySelector('main') || doc.body;
+    const articleRange = findeArticleRange(root, articleTitle);
+    if (!articleRange.fecha) return [];
+
+    const events = [];
+    const headings = Array.from(root.querySelectorAll('h2, h3'));
+    const stopTitle = /^(lo [uú]ltimo|lo m[aá]s le[ií]do|imperdibles|servicios|comentarios|m[aá]s sobre)/i;
+    const ignoredTitle = /^(finde|gu[ií]a del ocio|tres panoramas|panoramas|direcci[oó]n|horario|entrada)/i;
+    for (let index = 0; index < headings.length; index += 1) {
+      const heading = headings[index];
+      const title = clean(heading.textContent, 200);
+      if (stopTitle.test(title)) break;
+      if (title.length < 6 || title.length > 140 || ignoredTitle.test(title)) continue;
+      const context = textBetweenHeadings(doc, heading, headings[index + 1]);
+      if (context.length < 12) continue;
+      const location = labeledLocation(context, source.ubicacion);
+      if (isOutsideSantiago(location)) continue;
+      const ownRange = parseLooseRange(`${title} ${context}`);
+      const range = ownRange.fecha ? ownRange : articleRange;
+      const event = baseEvent(source, title, context, range, source.url, location, first(heading.parentElement, 'img')?.getAttribute('src'), 94);
+      if (inWindow(event, maxDate)) events.push(event);
+    }
+
+    if (events.length) return events;
+    const articleContext = elementText(root, 2200);
+    const location = labeledLocation(articleContext, source.ubicacion);
+    if (isOutsideSantiago(location)) return [];
+    const fallback = baseEvent(source, articleTitle, articleContext, articleRange, source.url, location, first(root, 'img')?.getAttribute('src'), 86);
+    return inWindow(fallback, maxDate) ? [fallback] : [];
   }
 
   function heritageDate(value) {
@@ -395,6 +555,54 @@
     return events;
   }
 
+  function embeddedLocation(value, fallback) {
+    if (typeof value === 'string') return clean(value, 200) || fallback;
+    if (!value || typeof value !== 'object') return fallback;
+    return clean(value.name || value.address || value.label || value.title, 200) || fallback;
+  }
+
+  function flattenEmbeddedEvents(value, source, maxDate, output = [], depth = 0) {
+    if (!value || depth > 12 || output.length >= 30) return output;
+    if (Array.isArray(value)) {
+      value.forEach(item => flattenEmbeddedEvents(item, source, maxDate, output, depth + 1));
+      return output;
+    }
+    if (typeof value !== 'object') return output;
+
+    const title = clean(value.title || value.name || value.eventTitle || value.event_name, 200);
+    const dateValue = value.startDate || value.start_date || value.dateStart || value.eventDate || value.date;
+    const endValue = value.endDate || value.end_date || value.dateEnd;
+    const fecha = parseDateOnly(dateValue) || parseLooseDate(dateValue);
+    const fechaFin = parseDateOnly(endValue) || parseLooseDate(endValue);
+    const description = clean(value.description || value.summary || value.subtitle || value.excerpt, 1000);
+    if (title.length >= 6 && fecha && EVENT_KEYWORDS.test(`${title} ${description}`)) {
+      const event = baseEvent(
+        source,
+        title,
+        description || title,
+        { fecha, fechaFin },
+        value.url || value.href || value.slug || source.url,
+        embeddedLocation(value.location || value.venue || value.place, source.ubicacion),
+        value.image?.url || value.image || value.thumbnail,
+        86
+      );
+      if (inWindow(event, maxDate)) output.push(event);
+    }
+    Object.values(value).forEach(item => flattenEmbeddedEvents(item, source, maxDate, output, depth + 1));
+    return output;
+  }
+
+  function extractEmbeddedJson(doc, source, maxDate) {
+    if (!source.extractEmbeddedJson) return [];
+    const events = [];
+    doc.querySelectorAll('script[type="application/json"], script#__NEXT_DATA__').forEach(script => {
+      try {
+        flattenEmbeddedEvents(JSON.parse(script.textContent), source, maxDate, events);
+      } catch (_) {}
+    });
+    return events;
+  }
+
   function extractRss(html, source, maxDate) {
     const doc = new DOMParser().parseFromString(html, 'application/xml');
     const events = [];
@@ -409,15 +617,22 @@
 
   function extractSource(html, source) {
     const maxDate = addDays(santiagoDateKey(), 45);
-    if (source.tipo === 'RSS') return uniqueEvents(extractRss(html, source, maxDate), 20);
+    const limit = source.maxEvents || 20;
+    if (source.tipo === 'RSS') return uniqueEvents(extractRss(html, source, maxDate), limit);
     const doc = new DOMParser().parseFromString(html, 'text/html');
     let direct = [];
     if (source.id === 'biblioteca-nacional' || source.id === 'patrimonio-cultural' || source.extractor === 'HERITAGE') direct = extractHeritage(doc, source, maxDate);
     else if (source.id === 'bibliotecas-providencia' || source.extractor === 'PROVIDENCIA') direct = extractProvidencia(doc, source, maxDate);
     else if (source.id === 'hoy-jugue') direct = extractHoyJuegue(doc, source, maxDate);
+    else if (source.extractor === 'LA_TERCERA_FINDE') direct = extractLaTerceraFinde(doc, source, maxDate);
+    else if (source.extractor === 'PRODUCT_DETAIL') direct = extractProductDetail(doc, source, maxDate);
+    else if (source.extractor === 'DATE_GROUPS') direct = extractDateGroups(doc, source, maxDate);
     else if (source.extractor === 'DATED_HEADINGS') direct = extractDatedHeadings(doc, source, maxDate);
-    if (!direct.length) direct = extractGeneric(doc, source, maxDate);
-    return uniqueEvents([...uniqueEvents(direct, 20), ...extractJsonLd(doc, source, maxDate)], 20);
+    const strictExtractor = source.extractor === 'PRODUCT_DETAIL' || source.extractor === 'DATE_GROUPS';
+    if (!direct.length && !strictExtractor) direct = extractGeneric(doc, source, maxDate);
+    let combined = uniqueEvents([...direct, ...extractJsonLd(doc, source, maxDate), ...extractEmbeddedJson(doc, source, maxDate)], limit);
+    if (!combined.length && source.recurringEvents?.length) combined = uniqueEvents(extractRecurringEvents(source, maxDate), limit);
+    return combined;
   }
 
   function eventDetailUrls(html, source, limit = 12) {
@@ -431,7 +646,11 @@
       try {
         const url = new URL(link.getAttribute('href'), source.url);
         if (url.origin !== sourceUrl.origin || url.pathname === sourceUrl.pathname) return;
-        if (!/\/eventos?\//i.test(url.pathname) || seen.has(url.toString())) return;
+        const allowedPath = source.detailPathPrefix
+          ? url.pathname.startsWith(source.detailPathPrefix)
+          : /\/eventos?\//i.test(url.pathname);
+        url.hash = '';
+        if (!allowedPath || seen.has(url.toString())) return;
         seen.add(url.toString());
         urls.push(url.toString());
       } catch (_) {}

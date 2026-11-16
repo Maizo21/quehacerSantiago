@@ -38,16 +38,16 @@
       try {
         const fetched = await sendRuntime({ type: 'FETCH_SOURCE', sourceId: source.id });
         const extractionSource = { ...source, url: fetched.url };
-        let events = QHSDiscovery.extractSource(fetched.html, extractionSource);
+        let events = source.detailsOnly ? [] : QHSDiscovery.extractSource(fetched.html, extractionSource);
         if (source.followEventLinks) {
-          const detailUrls = QHSDiscovery.eventDetailUrls(fetched.html, extractionSource, 12);
+          const detailUrls = QHSDiscovery.eventDetailUrls(fetched.html, extractionSource, source.detailLimit || 12);
           for (const detailUrl of detailUrls) {
             try {
               const detail = await sendRuntime({ type: 'FETCH_DETAIL', sourceId: source.id, url: detailUrl });
               events.push(...QHSDiscovery.extractSource(detail.html, { ...source, url: detail.url }));
             } catch (_) {}
           }
-          events = QHSDiscovery.mergeEvents(events, 20);
+          events = QHSDiscovery.mergeEvents(events, source.maxEvents || 20);
         }
         results.push({
           sourceId: source.id,

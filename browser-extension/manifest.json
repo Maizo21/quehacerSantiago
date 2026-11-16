@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Que Hacer Santiago - Recolector local",
   "description": "Consulta carteleras desde tu navegador y entrega las sugerencias al panel de administración sin usar Railway.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "permissions": [],
   "host_permissions": [
     "https://*.bibliotecasantiago.gob.cl/*",
@@ -20,7 +20,6 @@
     "https://*.cartasmagicsur.cl/*",
     "https://*.torneostcg.cl/*",
     "https://*.eventhoy.com/*",
-    "https://*.collectorcenter.cl/*",
     "https://*.deckshield.cl/*",
     "https://*.iicsantiago.esteri.it/*",
     "https://*.m100.cl/*",
@@ -32,14 +31,9 @@
     "https://*.portaldisc.com/*",
     "https://*.ccn.cl/*",
     "https://*.mallplaza.com/*",
-    "https://*.parquearauco.cl/*",
     "https://*.factoria-franklin.cl/*",
-    "https://*.agendayungay.cl/*",
     "https://*.mavi.uc.cl/*",
-    "https://*.santiagoturismo.cl/*",
-    "https://*.patiobellavista.cl/*",
     "https://*.barriolastarria.cl/*",
-    "https://*.vivesantiago.cl/*",
     "https://*.clubchocolate.cl/*"
   ],
   "background": {

@@ -8,7 +8,7 @@ import { dateKey, formatEventRange, todayInSantiago } from '@/lib/eventDates';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const DISMISSED_SUGGESTIONS_KEY = 'quehacerSantiago:dismissed-suggestions:v1';
-const DISCOVERY_RESULTS_KEY = 'quehacerSantiago:discovery-results:v5';
+const DISCOVERY_RESULTS_KEY = 'quehacerSantiago:discovery-results:v7';
 const DISCOVERY_CACHE_MS = 6 * 60 * 60 * 1000;
 const MAX_DISMISSED_SUGGESTIONS = 500;
 const MAX_LOCAL_SUGGESTIONS = 1000;

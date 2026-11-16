@@ -85,6 +85,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       detailUrl = new URL(String(message.url || ''), source.url);
       const sourceUrl = new URL(source.url);
       if (detailUrl.protocol !== 'https:' || detailUrl.origin !== sourceUrl.origin) throw new Error('URL de detalle no autorizada');
+      if (source.detailPathPrefix && !detailUrl.pathname.startsWith(source.detailPathPrefix)) throw new Error('Ruta de detalle no autorizada');
     } catch (error) {
       sendResponse({ ok: false, error: error.message });
       return false;
